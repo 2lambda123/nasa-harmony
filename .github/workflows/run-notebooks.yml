@@ -3,7 +3,7 @@ on:
   push:
     branches: [ harmony-1040 ]
 jobs:
-  container-test-job:
+  run-notebooks-job:
     runs-on: ubuntu-latest
     container:
       image: osgeo/gdal
@@ -11,3 +11,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Set up notebook environment
         run: apt-get update
+        run: apt-get -y install python3-pip
+        run: pip install jupyter
+        run: pip install rasterio OWSLib GDAL matplotlib netCDF4 numpy
+        run: pip install s3fs zarr
