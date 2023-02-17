@@ -14,4 +14,5 @@ jobs:
       - run: pip install jupyter
       - run: pip install rasterio OWSLib GDAL matplotlib netCDF4 numpy
       - run: pip install s3fs zarr
+      - run: pip install papermill
       - run: pip install -r docs/notebook_helpers/requirements.txt
