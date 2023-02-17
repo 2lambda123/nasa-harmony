@@ -8,10 +8,11 @@ jobs:
     container:
       image: osgeo/gdal
     steps:
-      - name: Set up notebook environment
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - run: apt-get update
       - run: apt-get -y install python3-pip
       - run: pip install jupyter
       - run: pip install rasterio OWSLib GDAL matplotlib netCDF4 numpy
       - run: pip install s3fs zarr
+      - run: cd docs
+      - run: pip install -r notebook_helpers/requirements.txt
