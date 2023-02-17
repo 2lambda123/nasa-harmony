@@ -8,5 +8,6 @@ jobs:
     container:
       image: osgeo/gdal
     steps:
-      - name: Check for dockerenv file
-        run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
+      - uses: actions/checkout@v3
+      - name: Set up notebook environment
+        run: apt-get update
