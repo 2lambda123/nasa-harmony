@@ -16,4 +16,4 @@ jobs:
       - run: pip install s3fs zarr
       - run: pip install papermill
       - run: pip install -r docs/notebook_helpers/requirements.txt
-      - run: papermill ./docs/Top50ServiceChecker.ipynb
+      - run: papermill "docs/Harmony API introduction.ipynb" out.ipynb
