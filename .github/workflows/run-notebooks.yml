@@ -9,6 +9,11 @@ jobs:
       image: osgeo/gdal
     steps:
       - uses: actions/checkout@v3
+      - uses: extractions/netrc@v1
+        with:
+          machine: uat.urs.earthdata.nasa.gov
+          username: ${{ secrets.EDL_USER }}
+          password: ${{ secrets.EDL_PASSWORD }}
       - run: apt-get update
       - run: apt-get -y install python3-pip
       - run: pip install jupyter
