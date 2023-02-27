@@ -20,5 +20,6 @@ jobs:
       - run: pip install rasterio OWSLib GDAL matplotlib netCDF4 numpy
       - run: pip install s3fs zarr
       - run: pip install papermill
-      - run: pip install -r docs/notebook_helpers/requirements.txt
-      - run: papermill "docs/Harmony API introduction.ipynb" out.ipynb
+      - run: cd docs
+      - run: pip install -r notebook_helpers/requirements.txt
+      - run: papermill "Harmony API introduction.ipynb" out.ipynb
