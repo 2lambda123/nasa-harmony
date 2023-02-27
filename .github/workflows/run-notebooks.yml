@@ -5,6 +5,9 @@ on:
 jobs:
   run-notebooks-job:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./docs
     container:
       image: osgeo/gdal
     steps:
@@ -20,6 +23,5 @@ jobs:
       - run: pip install rasterio OWSLib GDAL matplotlib netCDF4 numpy
       - run: pip install s3fs zarr
       - run: pip install papermill
-      - run: cd docs
       - run: pip install -r notebook_helpers/requirements.txt
       - run: papermill "Harmony API introduction.ipynb" out.ipynb
