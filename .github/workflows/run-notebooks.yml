@@ -3,7 +3,7 @@ on:
   push:
     branches: [ harmony-1040 ]
 jobs:
-  run-notebooks-job:
+  run-notebooks:
     runs-on: ubuntu-latest
     defaults:
       run:
