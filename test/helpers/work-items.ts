@@ -206,7 +206,8 @@ export async function fakeServiceStacOutput(
     id: workItemID, jobID,
   };
   const exampleCatalog = {
-    stac_version: '1.0.0-beta.2',
+    stac_version: '1.0.0',
+    type: 'Catalog',
     stac_extensions: [],
     id: '748a4966-2bf7-4a8f-9bbe-d10b6ccc0efd',
     links: [
@@ -226,7 +227,7 @@ export async function fakeServiceStacOutput(
 
   // NOTE: this is not a valid STAC item because it is missing fields we don't need for our tests
   const exampleItem = {
-    stac_version: '1.0.0-beta.2',
+    stac_version: '1.0.0',
     stac_extensions: [],
     id: '63760c1d-0094-40f4-8344-319d8a7673cc',
     type: 'Feature',

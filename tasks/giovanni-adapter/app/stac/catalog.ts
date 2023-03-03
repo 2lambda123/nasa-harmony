@@ -18,6 +18,8 @@ export default class Catalog implements StacCatalog {
 
   id: string;
 
+  type: string;
+
   links: StacLink[];
 
   description: string;
@@ -32,9 +34,10 @@ export default class Catalog implements StacCatalog {
    * @param properties - the properties to set on the catalog (description is required)
    */
   constructor(properties: Partial<StacCatalog>) {
-    this.stac_version = '1.0.0-beta.2';
+    this.stac_version = '1.0.0';
     this.stac_extensions = [];
     this.id = uuid();
+    this.type = 'Catalog';
     this.links = [];
     this.children = [];
     Object.assign(this, properties);

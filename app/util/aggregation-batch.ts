@@ -163,9 +163,10 @@ async function createStacCatalogForBatch(
   const links = [sourceLink, ...itemLinks];
 
   const catalog = {
-    'stac_version': '1.0.0-beta.2',
+    'stac_version': '1.0.0',
     'stac_extensions': [],
     'id': uuid(),
+    'type': 'Catalog',
     'links': links,
     'description': `CMR collection ${sourceCollection} granules`,
   };

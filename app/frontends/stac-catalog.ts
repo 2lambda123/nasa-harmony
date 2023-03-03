@@ -6,6 +6,8 @@ export interface SerializableCatalog {
 
   stac_version: string;
 
+  type: string;
+
   title: string;
 
   description: string;
@@ -34,6 +36,8 @@ class HarmonyCatalog implements SerializableCatalog {
 
   stac_version: string;
 
+  type: string;
+
   title: string;
 
   description: string;
@@ -49,6 +53,7 @@ class HarmonyCatalog implements SerializableCatalog {
   constructor(id: string, title = '', description = '') {
     this.id = id;
     this.stac_version = '1.0.0';
+    this.type = 'Catalog';
     this.title = title;
     this.description = description;
     this.links = [];
@@ -78,7 +83,7 @@ class HarmonyCatalog implements SerializableCatalog {
    * @returns - STAC Catalog JSON
    */
   toJSON(): SerializableCatalog {
-    const paths = ['id', 'stac_version', 'title', 'description', 'links'];
+    const paths = ['id', 'stac_version', 'type', 'title', 'description', 'links'];
     return pick(this, paths) as SerializableCatalog;
   }
 }

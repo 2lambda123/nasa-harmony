@@ -1,7 +1,8 @@
 {
-    "stac_version": "1.0.0-beta.2",
+    "stac_version": "1.0.0",
     "id": "d07e0028-d94e-435a-9c71-c75a7a843d40",
     "title": "Harmony Service Catalog",
+    "type": "Catalog",
     "description": "Harmony Transmogrifier STAC Catalog",
     "links": [
         {

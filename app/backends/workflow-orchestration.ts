@@ -247,7 +247,8 @@ async function createAggregatingWorkItem(
 
     // create a STAC catalog with links
     const catalog = {
-      stac_version: '1.0.0-beta.2',
+      stac_version: '1.0.0',
+      type: 'Catalog',
       stac_extensions: [],
       id: uuid(),
       description: 'Aggregation input catalogs',

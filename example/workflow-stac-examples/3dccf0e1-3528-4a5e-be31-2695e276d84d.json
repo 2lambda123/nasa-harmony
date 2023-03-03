@@ -1,5 +1,5 @@
 {
-    "stac_version": "1.0.0-beta.2",
+    "stac_version": "1.0.0",
     "type": "Feature",
     "stac_extensions": [
         "https://stac-extensions.github.io/timestamps/v1.0.0/schema.json"

@@ -1,6 +1,7 @@
 {
-    "stac_version": "1.0.0-beta.2",
+    "stac_version": "1.0.0",
     "id": "97926a17-e99f-420c-846f-b9bc739159c9",
+    "type": "Catalog",
     "title": "Harmony Service Catalog",
     "description": "Harmony Result Handler STAC Catalog",
     "links": [

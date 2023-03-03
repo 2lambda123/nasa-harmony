@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.stacspec.org/v1.0.0-beta.2/catalog-spec/json-schema/catalog.json#",
+  "$id": "https://schemas.stacspec.org/v1.0.0/catalog-spec/json-schema/catalog.json#",
   "title": "STAC Catalog Specification",
   "description": "This object represents Catalogs in a SpatioTemporal Asset Catalog.",
   "allOf": [
@@ -10,10 +10,11 @@
   ],
   "definitions": {
     "catalog": {
-      "title": "Catalog",
+      "title": "STAC Catalog",
       "type": "object",
       "required": [
         "stac_version",
+        "type",
         "id",
         "description",
         "links"
@@ -22,29 +23,26 @@
         "stac_version": {
           "title": "STAC version",
           "type": "string",
-          "const": "1.0.0-beta.2"
+          "const": "1.0.0"
         },
         "stac_extensions": {
           "title": "STAC extensions",
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "anyOf": [
-              {
-                "title": "Reference to a JSON Schema",
-                "type": "string",
-                "format": "uri"
-              },
-              {
-                "title": "Reference to a core extension",
-                "type": "string"
-              }
-            ]
+            "title": "Reference to a JSON Schema",
+            "type": "string",
+            "format": "iri"
           }
+        },
+        "type": {
+          "title": "Type of STAC entity",
+          "const": "Catalog"
         },
         "id": {
           "title": "Identifier",
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "title": {
           "title": "Title",
@@ -52,7 +50,8 @@
         },
         "description": {
           "title": "Description",
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "links": {
           "title": "Links",
@@ -72,11 +71,14 @@
       "properties": {
         "href": {
           "title": "Link reference",
-          "type": "string"
+          "type": "string",
+          "format": "iri-reference",
+          "minLength": 1
         },
         "rel": {
           "title": "Link relation type",
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
           "title": "Link type",

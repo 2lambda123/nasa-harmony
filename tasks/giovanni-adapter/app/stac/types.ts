@@ -47,6 +47,8 @@ export interface StacCatalog {
 
   stac_extensions?: string[];
 
+  type: string;
+
   id: string;
 
   title?: string;

@@ -1,6 +1,7 @@
 {
-    "stac_version": "1.0.0-beta.2",
+    "stac_version": "1.0.0",
     "id": "ef4cadf4-9311-4e31-be0b-44f2531c1a4e",
+    "type": "Catalog",
     "title": "Harmony Service Catalog",
     "description": "Harmony Granule Locator STAC Catalog",
     "links": [

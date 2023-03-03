@@ -34,7 +34,7 @@ export default class Item implements StacItem {
    *   geometry is required
    */
   constructor(properties: Partial<StacItem>) {
-    this.stac_version = '1.0.0-beta.2';
+    this.stac_version = '1.0.0';
     this.stac_extensions = [];
     this.id = uuid();
     this.type = 'Feature';
