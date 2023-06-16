@@ -8,6 +8,7 @@ RUN mkdir -p /harmony-work-scheduler
 RUN mkdir -p /tmp/metadata
 COPY built env-defaults package.json package-lock.json /harmony-work-scheduler/
 WORKDIR /harmony-work-scheduler
-RUN npm ci
+# RUN npm ci
+RUN npm install --production
 
 ENTRYPOINT [ "node", "kubernetes-services/work-scheduler/app/server.js"]

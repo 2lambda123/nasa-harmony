@@ -15,10 +15,6 @@
     "build-m1": "tsc && docker build --platform linux/amd64 --tag harmonyservices/work-scheduler:${VERSION:-latest} .",
     "publish": "docker push harmonyservices/work-scheduler:${VERSION:-latest}"
   },
-  "engines": {
-    "node": "^16.13.1",
-    "npm": "^8.0"
-  },
   "author": "NASA EOSDIS Harmony team",
   "license": "Apache-2.0",
   "dependencies": {
@@ -43,6 +39,10 @@
     "tmp": "^0.2.1",
     "winston": "^3.7.2",
     "xstate": "^4.31.0"
+  },
+  "engines": {
+    "node": "^16.13.1",
+    "npm": "^8.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.22",
