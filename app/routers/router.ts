@@ -37,6 +37,7 @@ import { getStagingBucketPolicy } from '../frontends/staging-bucket-policy';
 import { parseGridMiddleware } from '../util/grids';
 import docsPage from '../frontends/docs/docs';
 import { getCollectionCapabilitiesJson } from '../frontends/capabilities';
+import { getVariableCoverages } from '../frontends/variable-coverages/get-variable-coverages';
 export interface RouterConfig {
   PORT?: string | number; // The port to run the frontend server on
   BACKEND_PORT?: string | number; // The port to run the backend server on
@@ -205,6 +206,7 @@ export default function router({ skipEarthdataLogin = 'false' }: RouterConfig): 
   result.get(collectionPrefix('wms'), asyncHandler(service(serviceInvoker)));
   result.get(/^.*?\/ogc-api-coverages\/.*?\/collections\/.*?\/coverage\/rangeset\/?$/, asyncHandler(service(serviceInvoker)));
   result.post(/^.*?\/ogc-api-coverages\/.*?\/collections\/.*?\/coverage\/rangeset\/?$/, asyncHandler(service(serviceInvoker)));
+  result.get('/variable-coverages', asyncHandler(service(getVariableCoverages)));
   result.get('/jobs', asyncHandler(getJobsListing));
   result.get('/jobs/:jobID', asyncHandler(getJobStatus));
 
