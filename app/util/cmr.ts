@@ -155,6 +155,7 @@ export interface CmrRelatedUrl {
 export interface CmrQuery
   extends NodeJS.Dict<string | string[] | number | number[] | boolean | boolean[] | null> {
   concept_id?: string | string[];
+  variable_concept_id?: string | string[];
   readable_granule_name?: string | string[];
   page_size?: number;
   downloadable?: boolean;
@@ -586,6 +587,20 @@ export function getCollectionsByShortName(
     page_size: cmrMaxPageSize,
     sort_key: '-revisionDate',
   }, token);
+}
+
+/**
+ *
+ * @param variableConcpetId - the concept id of the variable that the collection(s) must include
+ * @param token - Access token for user request
+ * @returns The collections that include the given variable
+ */
+export async function getCollectionsForVariable(variableConceptId: string, token: string): Promise<Array<CmrCollection>> {
+  const response =  await queryCollections({
+    variable_concept_id: variableConceptId,
+  }, token);
+
+  return response;
 }
 
 // We have an environment variable called CMR_MAX_PAGE_SIZE which is used for how many items

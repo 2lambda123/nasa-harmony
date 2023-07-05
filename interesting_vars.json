@@ -1,0 +1,86 @@
+[
+  {
+    "hits": 1,
+    "took": 7,
+    "items": [
+      {
+        "concept_id": "V1244967929-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "harmony-MODIS_A-JPL-L2P-v2019.0-wind_speed",
+        "name": "wind_speed",
+        "long_name": "10m wind speed"
+      }
+    ]
+  },
+  {
+    "hits": 1,
+    "took": 7,
+    "items": [
+      {
+        "concept_id": "V1244967915-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "harmony-MODIS_A-JPL-L2P-v2019.0-sea_surface_temperature_4um",
+        "name": "sea_surface_temperature_4um",
+        "long_name": "sea surface temperature"
+      }
+    ]
+  },
+  {
+    "hits": 1,
+    "took": 7,
+    "items": [
+      {
+        "concept_id": "V1244967905-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "harmony-MODIS_A-JPL-L2P-v2019.0-lat",
+        "name": "lat",
+        "long_name": "latitude"
+      }
+    ]
+  },
+  {
+    "hits": 1,
+    "took": 7,
+    "items": [
+      {
+        "concept_id": "V1244967913-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "harmony-MODIS_A-JPL-L2P-v2019.0-sea_surface_temperature",
+        "name": "sea_surface_temperature",
+        "long_name": "sea surface temperature"
+      }
+    ]
+  },
+  {
+    "hits": 1,
+    "took": 7,
+    "items": [
+      {
+        "concept_id": "V1244967907-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "harmony-MODIS_A-JPL-L2P-v2019.0-lon",
+        "name": "lon",
+        "long_name": "longitude"
+      }
+    ]
+  },
+  {
+    "hits": 1,
+    "took": 7,
+    "items": [
+      {
+        "concept_id": "V1244967897-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "harmony-MODIS_A-JPL-L2P-v2019.0-chlorophyll_a",
+        "name": "chlorophyll_a",
+        "long_name": "Chlorophyll Concentration, OC3 Algorithm"
+      }
+    ]
+  },
+]

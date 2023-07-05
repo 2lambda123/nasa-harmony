@@ -206,7 +206,7 @@ export default function router({ skipEarthdataLogin = 'false' }: RouterConfig): 
   result.get(collectionPrefix('wms'), asyncHandler(service(serviceInvoker)));
   result.get(/^.*?\/ogc-api-coverages\/.*?\/collections\/.*?\/coverage\/rangeset\/?$/, asyncHandler(service(serviceInvoker)));
   result.post(/^.*?\/ogc-api-coverages\/.*?\/collections\/.*?\/coverage\/rangeset\/?$/, asyncHandler(service(serviceInvoker)));
-  result.get('/variable-coverages', asyncHandler(service(getVariableCoverages)));
+  result.get('/variable-coverages', asyncHandler(getVariableCoverages));
   result.get('/jobs', asyncHandler(getJobsListing));
   result.get('/jobs/:jobID', asyncHandler(getJobStatus));
 
