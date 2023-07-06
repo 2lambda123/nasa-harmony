@@ -2,10 +2,11 @@
  * Contains routes for variable coverages and related functions
  */
 
+import queryString from 'querystring';
 import { Response, NextFunction } from 'express';
 import HarmonyRequest from '../../models/harmony-request';
 import { RequestValidationError } from '../../util/errors';
-import { getAllVariables, getCollectionsForVariable, getVariablesByIds } from '../../util/cmr';
+import { getCollectionsForVariable, getVariablesByIds } from '../../util/cmr';
 
 /**
  * Gets the concept ID for a variable
@@ -43,12 +44,15 @@ export async function getVariableCoverages(
   try {
     validateVariableCoverageRequest(req);
     const conceptId = await getConceptIdForVariable(req.query.variableId as string);
-    // get the UMM variables for the concept ID
-    const collectionData = (await getCollectionsForVariable(conceptId, req.accessToken))[0];
+    // get the UMM variable data for the concept ID
+    const variableName = (await getVariablesByIds([conceptId], req.accessToken))[0].umm.Name;
+    // get the associated collection ID for the variable
+    const collectionConceptId = (await getCollectionsForVariable(conceptId, req.accessToken))[0].id;
 
-
-
-    res.send(collectionData.id);
+    const searchParams = new URLSearchParams(req.query as Record<string, string>);
+    searchParams.delete('variableId');
+    const redirectUrl = `/${collectionConceptId}/ogc-api-coverages/1.0.0/collections/${variableName}/coverage/rangeset?${searchParams.toString()}`;
+    res.redirect(redirectUrl);
   } catch (e) {
     req.context.logger.error(e);
     if (e instanceof TypeError) {

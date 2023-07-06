@@ -83,4 +83,18 @@
       }
     ]
   },
+  {
+    "hits": 1,
+    "took": 10,
+    "items": [
+      {
+        "concept_id": "V1233801716-EEDTEST",
+        "revision_id": 1,
+        "provider_id": "EEDTEST",
+        "native_id": "mmt_variable_3971",
+        "name": "blue_var",
+        "long_name": "Blue channel"
+      }
+    ]
+  }
 ]
