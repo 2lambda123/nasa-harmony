@@ -2,7 +2,6 @@
  * Contains routes for variable coverages and related functions
  */
 
-import queryString from 'querystring';
 import { Response, NextFunction } from 'express';
 import HarmonyRequest from '../../models/harmony-request';
 import { RequestValidationError } from '../../util/errors';
@@ -43,15 +42,23 @@ export async function getVariableCoverages(
   next: NextFunction): Promise<void> {
   try {
     validateVariableCoverageRequest(req);
-    const conceptId = await getConceptIdForVariable(req.query.variableId as string);
-    // get the UMM variable data for the concept ID
-    const variableName = (await getVariablesByIds([conceptId], req.accessToken))[0].umm.Name;
-    // get the associated collection ID for the variable
-    const collectionConceptId = (await getCollectionsForVariable(conceptId, req.accessToken))[0].id;
+    let variableIds: string | string[];
+    if (Array.isArray(req.query.variableId)) {
+      variableIds = req.query.variableId as string[];
+    } else {
+      variableIds = [req.query.variableId as string];
+    }
+    const conceptIds = await Promise.all(variableIds.map((id) => getConceptIdForVariable(id)));
+
+    // get the UMM variable data for the concept IDs
+    const variableNames = (await getVariablesByIds(conceptIds, req.accessToken)).map((v) => v.umm.Name);
+    const varNameParam = variableNames.join(',');
+    // get the associated collection ID for the variables (this assues they all are part of the same collection)
+    const collectionConceptId = (await getCollectionsForVariable(conceptIds[0], req.accessToken))[0].id;
 
     const searchParams = new URLSearchParams(req.query as Record<string, string>);
     searchParams.delete('variableId');
-    const redirectUrl = `/${collectionConceptId}/ogc-api-coverages/1.0.0/collections/${variableName}/coverage/rangeset?${searchParams.toString()}`;
+    const redirectUrl = `/${collectionConceptId}/ogc-api-coverages/1.0.0/collections/${varNameParam}/coverage/rangeset?${searchParams.toString()}`;
     res.redirect(redirectUrl);
   } catch (e) {
     req.context.logger.error(e);
