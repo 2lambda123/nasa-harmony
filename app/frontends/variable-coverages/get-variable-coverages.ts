@@ -7,14 +7,25 @@ import HarmonyRequest from '../../models/harmony-request';
 import { RequestValidationError } from '../../util/errors';
 import { getCollectionsForVariable, getVariablesByIds } from '../../util/cmr';
 
+// temporary mapping of variable IDs to concept IDs to act like Chris's service
+const variableMap = {
+  'red_var': 'V1233801695-EEDTEST',
+  'blue_var': 'V1233801716-EEDTEST',
+};
+
+
 /**
  * Gets the concept ID for a variable
  * @param variableId - ID of the variable. This can be a name concept ID
  * @returns concept ID (same as variable ID for now)
  **/
 async function getConceptIdForVariable(variableId: string): Promise<string> {
+  // if the variable ID is a concept ID, return it
+  if (/^V\d{10}-.*$/.test(variableId)) {
+    return variableId;
+  }
   // TODO call Chris's service to get the concept ID
-  return variableId;
+  return variableMap[variableId];
 }
 
 /**
