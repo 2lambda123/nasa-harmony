@@ -6,11 +6,12 @@ import { Response, NextFunction } from 'express';
 import HarmonyRequest from '../../models/harmony-request';
 import { RequestValidationError } from '../../util/errors';
 import { getCollectionsForVariable, getVariablesByIds } from '../../util/cmr';
+import axios from 'axios';
 
 // temporary mapping of variable IDs to concept IDs to act like Chris's service
 const variableMap = {
-  'red_var': 'V1233801695-EEDTEST',
-  'blue_var': 'V1233801716-EEDTEST',
+  // 'red_var': 'V1233801695-EEDTEST',
+  // 'blue_var': 'V1233801716-EEDTEST',
 };
 
 
@@ -24,8 +25,16 @@ async function getConceptIdForVariable(variableId: string): Promise<string> {
   if (/^V\d{10}-.*$/.test(variableId)) {
     return variableId;
   }
-  // TODO call Chris's service to get the concept ID
-  return variableMap[variableId];
+
+  let conceptId = variableMap[variableId];
+  if (!conceptId) {
+    // Use Chris'service to get the concept ID for the variable
+    const resp = await axios.get(`http://localhost:3010/variables?search=${variableId}`);
+    // eslint-disable-next-line prefer-destructuring
+    conceptId = resp.data[0].conceptId;
+  }
+
+  return conceptId;
 }
 
 /**
