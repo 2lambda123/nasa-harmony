@@ -72,7 +72,8 @@ export async function getVariableCoverages(
 
     // get the UMM variable data for the concept IDs
     const variableNames = (await getVariablesByIds(conceptIds, req.accessToken)).map((v) => v.umm.Name);
-    const varNameParam = variableNames.join(',');
+    const encodedVariableNames = variableNames.map((v) => encodeURIComponent(v));
+    const varNameParam = encodedVariableNames.join(',');
     // get the associated collection ID for the variables (this assues they all are part of the same collection)
     const collectionConceptId = (await getCollectionsForVariable(conceptIds[0], req.accessToken))[0].id;
 
