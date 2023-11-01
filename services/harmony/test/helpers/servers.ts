@@ -44,8 +44,8 @@ export default function hookServersStartStop(opts = { skipEarthdataLogin: true }
     });
     this.frontend = servers.frontend;
     this.backend = servers.backend;
-    stub(env, 'callbackUrlRoot').get(() => `http://localhost:${servers.backend.address().port}`);
-    process.env.OAUTH_REDIRECT_URI = `http://localhost:${servers.frontend.address().port}/oauth2/redirect`;
+    stub(env, 'callbackUrlRoot').get(() => `http://127.0.0.1:${servers.backend.address().port}`);
+    process.env.OAUTH_REDIRECT_URI = `http://127.0.0.1:${servers.frontend.address().port}/oauth2/redirect`;
 
     if (stubOAuthClientCredentialsReq) {
       stubEdlRequest(
