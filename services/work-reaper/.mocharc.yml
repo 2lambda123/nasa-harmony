@@ -5,9 +5,14 @@ file: # Files that get loaded before suite execution.  Helpful when running a si
 extension:
   - js
   - ts
+ignore:
+  'node_modules/**/*'
 require:
   - ts-node/register
   - tsconfig-paths/register
+node-option:
+  - 'experimental-specifier-resolution=node'
+  - 'loader=ts-node/esm'
 recursive: true
 exit: true
 timeout: 2000

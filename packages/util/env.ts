@@ -3,9 +3,13 @@ import _ from 'lodash';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as winston from 'winston';
 import { IsInt, IsNotEmpty, IsNumber, IsUrl, Matches, Max, Min, ValidateIf, ValidationError, validateSync } from 'class-validator';
 import { isBoolean, isFloat, isInteger, parseBoolean } from './string';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const logger = winston.createLogger({
   transports: [

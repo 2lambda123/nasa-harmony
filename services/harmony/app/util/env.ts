@@ -2,6 +2,7 @@ import { IsInt, IsNotEmpty, Min } from 'class-validator';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { envOverrides, HarmonyEnv, IHarmonyEnv, makeConfigVar, validateEnvironment, envVars } from '@harmony/util/env';
 import _ from 'lodash';
 
@@ -11,9 +12,16 @@ import _ from 'lodash';
 // and some specific to the server
 //
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// console.log(`__dirname = ${__dirname}`);
+
 // read the local env-defaults
 const localPath = path.resolve(__dirname, '../../env-defaults');
 const envLocalDefaults = dotenv.parse(fs.readFileSync(localPath));
+
+// console.log(`envLocalDefaults = ${JSON.stringify(envLocalDefaults, null, 2)}`);
 
 export interface IHarmonyServerEnv extends IHarmonyEnv {
   aggregateStacCatalogMaxPageSize: number;
@@ -42,6 +50,7 @@ export interface IHarmonyServerEnv extends IHarmonyEnv {
 }
 
 class HarmonyServerEnv extends HarmonyEnv implements IHarmonyServerEnv {
+
   @IsInt()
   aggregateStacCatalogMaxPageSize: number;
 
@@ -126,6 +135,11 @@ class HarmonyServerEnv extends HarmonyEnv implements IHarmonyServerEnv {
   @IsInt()
   @Min(1)
   maxPostFileSize: number;
+
+  constructor(serverEnv: IHarmonyServerEnv) {
+    super(serverEnv);
+    Object.assign(this, serverEnv);
+  }
 
 }
 

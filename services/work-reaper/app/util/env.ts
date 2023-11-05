@@ -2,6 +2,7 @@ import { IsInt, Min } from 'class-validator';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { HarmonyEnv, IHarmonyEnv, envOverrides, makeConfigVar, validateEnvironment, envVars } from '@harmony/util/env';
 import _ from 'lodash';
 
@@ -10,6 +11,9 @@ import _ from 'lodash';
 // Sets up the environment variables for the work reaper using the base environment variables
 // and some specific to the reaper
 //
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // read the local env-defaults
 const localPath = path.resolve(__dirname, '../../env-defaults');

@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "module": "commonjs",
+    "module": "esnext",
     "baseUrl": ".",
     "moduleResolution": "node",
     "target": "ES2021",
     "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "allowJs": true,
     "noImplicitAny": false,
     "sourceMap": true,

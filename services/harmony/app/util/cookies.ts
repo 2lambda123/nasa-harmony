@@ -11,7 +11,7 @@ import { Response } from 'express';
 import { mergeParameters } from './parameter-parsing-helpers';
 import * as urlUtil from './url';
 import HarmonyRequest from '../models/harmony-request';
-import { get } from 'lodash';
+import _ from 'lodash';
 import { randomBytes } from 'crypto';
 
 export const cookieOptions = { signed: true, sameSite: 'lax' as const };
@@ -25,7 +25,7 @@ export const cookieOptions = { signed: true, sameSite: 'lax' as const };
 function _shapefile(req: HarmonyRequest): string[] {
   // if a shapefile was uploaded set a cookie with a url for the shapefile and
   // the other POST form parameters
-  const shapefile = get(req, 'files.shapefile[0]') || get(req, 'file');
+  const shapefile = _.get(req, 'files.shapefile[0]') || get(req, 'file');
   if (!shapefile) return [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { mimetype, key, bucket, path } = shapefile as any;

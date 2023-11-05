@@ -2,14 +2,22 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "module": "commonjs",
+    "module": "node16",
     "baseUrl": ".",
-    "moduleResolution": "node",
-    "target": "ES2021",
+    "moduleResolution": "node16",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "allowJs": true,
     "noImplicitAny": false,
     "sourceMap": true,
-    "outDir": "built"
+    "outDir": "built",
+    "resolveJsonModule": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   }
 }

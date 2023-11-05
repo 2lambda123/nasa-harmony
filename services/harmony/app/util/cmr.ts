@@ -1,7 +1,8 @@
 import FormData from 'form-data';
 import * as fs from 'fs';
 import { v4 as uuid } from 'uuid';
-import { get, isArray } from 'lodash';
+import lodash from 'lodash';
+import { get, isArray } from lodash;
 import fetch, { Response } from 'node-fetch';
 import * as querystring from 'querystring';
 import { CmrError } from './errors';

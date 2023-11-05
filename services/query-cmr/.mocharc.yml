@@ -10,5 +10,8 @@ extension:
 require:
   - ts-node/register
   - tsconfig-paths/register
+node-option:
+  - 'experimental-specifier-resolution=node'
+  - 'loader=ts-node/esm'
 recursive: true
 exit: true

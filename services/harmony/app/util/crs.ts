@@ -1,4 +1,5 @@
-import { SpatialReference } from 'gdal-async';
+import gdal from 'gdal-async';
+const { SpatialReference } = gdal
 import { RequestValidationError } from './errors';
 import { SRS } from '../models/data-operation';
 

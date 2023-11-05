@@ -1,17 +1,14 @@
 {
-  "compilerOptions": {
-      "module": "commonjs",
-      "baseUrl": ".",
-      "moduleResolution": "node",
-      "target": "ES2021",
-      "esModuleInterop": true,
-      "experimentalDecorators": true,
-      "emitDecoratorMetadata": true,
-      "allowJs": true,
-      "noImplicitAny": false,
-      "sourceMap": true,
-      "outDir": "built"
+  "extends": "../../tsconfig.base.json",
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   },
-  "include": ["."],
-  "exclude": ["./node_modules", "coverage"]
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "./node_modules",
+    "coverage"
+  ]
 }

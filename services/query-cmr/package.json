@@ -1,6 +1,7 @@
 {
   "name": "@harmony/query-cmr",
   "version": "0.0.0",
+  "type": "module",
   "description": "Harmony task that queries the CMR for an incoming message and produces a sources file as output",
   "main": "app/query-granules.ts",
   "scripts": {
@@ -8,7 +9,7 @@
     "start-dev": "strict-npm-engines && ts-node-dev --no-notify -r tsconfig-paths/register --watch app/views --respawn app/server",
     "start-dev-fast": "TS_NODE_TRANSPILE_ONLY=true ts-node-dev --no-notify -r tsconfig-paths/register --respawn --inspect=127.0.0.1:9230 app/server",
     "test": "tsc && eslint --ext .ts . && nyc mocha && better-npm-audit audit",
-    "test-fast": "TS_NODE_TRANSPILE_ONLY=true mocha",
+    "test-fast": "TS_NODE_TRANSPILE_ONLY=true mocha -r ts-node/register **/test/**/*.ts",
     "lint": "eslint --ext .ts .",
     "coverage": "nyc mocha",
     "docker-example": "docker run --rm -it --env SHARED_SECRET_KEY=foo --env CMR_ENDPOINT='https://cmr.uat.earthdata.nasa.gov' -v $(pwd)/example:/app/example -v $(pwd)/temp:/app/temp harmonyservices/query-cmr:${VERSION:-latest}",
@@ -37,7 +38,8 @@
     "@aws-sdk/s3-request-presigner": "^3.437.0",
     "@aws-sdk/url-parser": "^3.374.0",
     "@aws-sdk/util-format-url": "^3.433.0",
-    "@harmony/util": "file:../../packages/util",
+    "@harmony/util": "@harmony/util",
+    "@harmony/harmony": "@harmony/harmony",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "class-validator": "^0.14.0",

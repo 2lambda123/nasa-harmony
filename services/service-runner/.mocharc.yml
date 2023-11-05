@@ -6,7 +6,9 @@ file: # Files that get loaded before suite execution.  Helpful when running a si
   - ../harmony/test/helpers/aws.ts
 extension:
   - js
+  - jsx
   - ts
+  - tsx
 require:
   - ts-node/register
   - tsconfig-paths/register
