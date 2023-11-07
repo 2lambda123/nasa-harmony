@@ -8,9 +8,6 @@ import * as winston from 'winston';
 import { IsInt, IsNotEmpty, IsNumber, IsUrl, Matches, Max, Min, ValidateIf, ValidationError, validateSync } from 'class-validator';
 import { isBoolean, isFloat, isInteger, parseBoolean } from './string';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const logger = winston.createLogger({
   transports: [
     new winston.transports.Console(),

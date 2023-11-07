@@ -6,7 +6,9 @@
     "baseUrl": ".",
     "moduleResolution": "node16",
     "target": "es2022",
-    "lib": ["es2022"],
+    "lib": [
+      "es2022"
+    ],
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -15,9 +17,5 @@
     "sourceMap": true,
     "outDir": "built",
     "resolveJsonModule": true
-  },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
   }
 }

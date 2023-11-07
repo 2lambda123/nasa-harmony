@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "description": "Data services frontend",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "test": "strict-npm-engines && eslint --ext .ts --ignore-pattern built . && nyc mocha && better-npm-audit audit",
     "test-fast": "TS_NODE_TRANSPILE_ONLY=true mocha",

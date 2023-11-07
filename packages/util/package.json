@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "description": "Utility modules related to Harmony",
   "main": "index.ts",
-  "type": "module",
   "scripts": {
     "test": "strict-npm-engines && eslint --ext .ts . && nyc mocha && better-npm-audit audit",
     "test-fast": "TS_NODE_TRANSPILE_ONLY=true mocha",
@@ -29,9 +28,6 @@
       ".ts",
       ".tsx"
     ],
-    "exclude": [
-      "**/*.d.ts"
-    ],
     "lines": 70,
     "reporter": [
       "lcov",
@@ -41,6 +37,7 @@
       "**/*.ts"
     ],
     "exclude": [
+      "**/*.d.ts",
       "node_modules/**",
       "build/**",
       "test/**"
