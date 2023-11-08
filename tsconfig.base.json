@@ -2,13 +2,9 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "module": "node16",
+    "module": "commonjs",
     "baseUrl": ".",
-    "moduleResolution": "node16",
-    "target": "es2022",
-    "lib": [
-      "es2022"
-    ],
+    "target": "esnext",
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -17,5 +13,10 @@
     "sourceMap": true,
     "outDir": "built",
     "resolveJsonModule": true
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
   }
 }
