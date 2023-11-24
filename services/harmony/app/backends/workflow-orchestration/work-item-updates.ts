@@ -1,4 +1,5 @@
 import env from '../../util/env';
+import { ReceivedMessage } from '../../util/queue/queue';
 import { logAsyncExecutionTime } from '../../util/log-execution';
 import { v4 as uuid } from 'uuid';
 import WorkItemUpdate from '../../models/work-item-update';
@@ -31,11 +32,20 @@ export type WorkItemPreprocessInfo = {
   outputItemSizes: number[];
 };
 
-export type WorkItemUpdateQueueItem = {
-  update: WorkItemUpdate,
-  operation: object,
-  preprocessResult?: WorkItemPreprocessInfo,
-};
+export class WorkItemUpdateQueueItem {
+  update: WorkItemUpdate;
+
+  operation: object;
+
+  preprocessResult?: WorkItemPreprocessInfo;
+
+  receipt: string;
+
+  constructor(message: ReceivedMessage) {
+    this.receipt = message.receipt;
+    Object.assign(this, JSON.parse(message.body));
+  }
+}
 
 const NO_NEXT_STEP = 'NoNextStep';
 

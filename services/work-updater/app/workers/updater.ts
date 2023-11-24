@@ -136,7 +136,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
     // process each message individually
     for (const msg of messages) {
       try {
-        const updateItem: WorkItemUpdateQueueItem = JSON.parse(msg.body);
+        const updateItem: WorkItemUpdateQueueItem = new WorkItemUpdateQueueItem(msg);
         const { update, operation } = updateItem;
         defaultLogger.debug(`Processing work item update from queue for work item ${update.workItemID} and status ${update.status}`);
         await handleWorkItemUpdate(update, operation, defaultLogger);
@@ -157,7 +157,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
     // open for that function to be updated to process all the updates at once in a more efficient
     // manner. It also allows us to delete all the messages from the queue at once, which is more
     // efficient than deleting them one at a time.
-    const updates: WorkItemUpdateQueueItem[] = messages.map((msg) => JSON.parse(msg.body));
+    const updates: WorkItemUpdateQueueItem[] = messages.map((msg) => new WorkItemUpdateQueueItem(msg));
     try {
       await exports.handleBatchWorkItemUpdates(updates, defaultLogger);
     } catch (e) {
