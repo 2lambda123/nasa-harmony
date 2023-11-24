@@ -44,32 +44,43 @@ function groupByWorkflowStepIndex(
  * @param jobID - ID of the job that the work item updates belong to
  * @param updates - List of work item updates
  * @param logger - Logger to use
+ * @returns an array of receipts for the updates that did not time out
  */
 async function handleBatchWorkItemUpdatesWithJobId(
   jobID: string,
   updates: WorkItemUpdateQueueItem[],
-  logger: Logger): Promise<void> {
+  logger: Logger): Promise<string[]> {
   const startTime = new Date().getTime();
+  const receipts = [];
   logger.debug(`Processing ${updates.length} work item updates for job ${jobID}`);
   // group updates by workflow step index to make sure at least one completion check is performed for each step
   const groups = groupByWorkflowStepIndex(updates);
   for (const workflowStepIndex of Object.keys(groups)) {
     if (groups[workflowStepIndex].length == 1) {
-      const { update, operation } = groups[workflowStepIndex][0];
-      await handleWorkItemUpdateWithJobId(jobID, update, operation, logger);
+      const queueItem: WorkItemUpdateQueueItem = groups[workflowStepIndex][0];
+      const { update, operation } = queueItem;
+      const didNotTimeOut = await handleWorkItemUpdateWithJobId(jobID, update, operation, logger);
+      if (didNotTimeOut) {
+        receipts.push(queueItem.receipt);
+      }
     } else {
+      const workItems: WorkItemUpdateQueueItem[] = groups[workflowStepIndex];
       const preprocessedWorkItems: WorkItemUpdateQueueItem[] = await Promise.all(
-        groups[workflowStepIndex].map(async (item: WorkItemUpdateQueueItem) => {
+        workItems.map(async (item: WorkItemUpdateQueueItem) => {
           const { update, operation } = item;
           const result = await preprocessWorkItem(update, operation, logger);
           item.preprocessResult = result;
           return item;
         }));
-      await processWorkItems(jobID, parseInt(workflowStepIndex), preprocessedWorkItems, logger);
+      const didNotTimeOut = await processWorkItems(jobID, parseInt(workflowStepIndex), preprocessedWorkItems, logger);
+      if (didNotTimeOut) {
+        receipts.push(workItems.map(item => item.receipt));
+      }
     }
   }
   const durationMs = new Date().getTime() - startTime;
   logger.debug('timing.HWIUWJI.batch.end', { durationMs });
+  return receipts;
 }
 
 /**
@@ -78,11 +89,13 @@ async function handleBatchWorkItemUpdatesWithJobId(
  * It calls the function handleBatchWorkItemUpdatesWithJobId to handle the updates.
  * @param updates - List of work item updates read from the queue
  * @param logger - Logger to use
+ * @returns an array of receipts for the updates that did not time out
  */
 export async function handleBatchWorkItemUpdates(
   updates: WorkItemUpdateQueueItem[],
-  logger: Logger): Promise<void> {
+  logger: Logger): Promise<string[]> {
   logger.debug(`Processing ${updates.length} work item updates`);
+  const receipts = [];
   // create a map of jobIDs to updates
   const jobUpdates: Record<string, WorkItemUpdateQueueItem[]> =
     await updates.reduce(async (acc, item) => {
@@ -105,10 +118,12 @@ export async function handleBatchWorkItemUpdates(
   for (const jobID in jobUpdates) {
     const startTime = Date.now();
     logger.debug(`Processing ${jobUpdates[jobID].length} work item updates for job ${jobID}`);
-    await handleBatchWorkItemUpdatesWithJobId(jobID, jobUpdates[jobID], logger);
+    const jobReceipts = await handleBatchWorkItemUpdatesWithJobId(jobID, jobUpdates[jobID], logger);
+    receipts.push(...jobReceipts);
     const endTime = Date.now();
     logger.debug(`Processing ${jobUpdates[jobID].length} work item updates for job ${jobID} took ${endTime - startTime} ms`);
   }
+  return receipts;
 }
 
 /**
@@ -135,18 +150,21 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   if (queueType === WorkItemQueueType.LARGE_ITEM_UPDATE) {
     // process each message individually
     for (const msg of messages) {
+      let didNotTimeOut: boolean;
       try {
         const updateItem: WorkItemUpdateQueueItem = new WorkItemUpdateQueueItem(msg);
         const { update, operation } = updateItem;
         defaultLogger.debug(`Processing work item update from queue for work item ${update.workItemID} and status ${update.status}`);
-        await handleWorkItemUpdate(update, operation, defaultLogger);
+        didNotTimeOut = await handleWorkItemUpdate(update, operation, defaultLogger);
       } catch (e) {
         defaultLogger.error(`Error processing work item update from queue: ${e}`);
       }
       try {
-        // delete the message from the queue even if there was an error updating the work-item
-        // so that we don't keep processing the same message over and over
-        await queue.deleteMessage(msg.receipt);
+        if (didNotTimeOut) {
+          // delete the message from the queue even if there was a non-timeout-related
+          // error updating the work-item so that we don't keep processing the same message over and over
+          await queue.deleteMessage(msg.receipt);
+        }
       } catch (e) {
         defaultLogger.error(`Error deleting work item update from queue: ${e}`);
       }
@@ -158,14 +176,16 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
     // manner. It also allows us to delete all the messages from the queue at once, which is more
     // efficient than deleting them one at a time.
     const updates: WorkItemUpdateQueueItem[] = messages.map((msg) => new WorkItemUpdateQueueItem(msg));
+    let receipts: string[] = messages.map((msg) => msg.receipt);
     try {
-      await exports.handleBatchWorkItemUpdates(updates, defaultLogger);
+      // all the receipts for the updates that did not time out
+      receipts = await exports.handleBatchWorkItemUpdates(updates, defaultLogger);
     } catch (e) {
       defaultLogger.error(`Error processing work item updates from queue: ${e}`);
     }
     // delete all the messages from the queue at once (slightly more efficient)
     try {
-      await queue.deleteMessages(messages.map((msg) => msg.receipt));
+      await queue.deleteMessages(receipts);
     } catch (e) {
       defaultLogger.error(`Error deleting work item updates from queue: ${e}`);
     }
