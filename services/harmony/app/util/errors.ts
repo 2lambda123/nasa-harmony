@@ -49,6 +49,25 @@ interface HttpErrorResponse {
   description: string;
 }
 
+// Class for any kind of error that might occurr during a work item update
+export class WorkItemUpdateError extends Error {
+  constructor(message = 'The work item update(s) failed') {
+    super(message);
+  }
+}
+
+export class WorkItemUpdateTimeoutError extends WorkItemUpdateError {
+  constructor(jobID: string, workItemID: number) {
+    super(`The update for job ${jobID} and work item ${workItemID} timed out`);
+  }
+}
+
+export class MultiWorkItemUpdateTimeoutError extends WorkItemUpdateError {
+  constructor(jobID: string, workflowStepIndex: number) {
+    super(`The updates for job ${jobID} and workflow step ${workflowStepIndex} timed out`);
+  }
+}
+
 /**
  * Sanitizes the error message that gets returned to an end user.
  *

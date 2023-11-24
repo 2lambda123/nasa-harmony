@@ -13,11 +13,11 @@ import WorkItem, { maxSortIndexForJobService, workItemCountForStep, getWorkItems
 import { WorkItemStatus, COMPLETED_WORK_ITEM_STATUSES } from '../../models/work-item-interface';
 import { outputStacItemUrls, handleBatching, resultItemSizes } from '../../util/aggregation-batch';
 import db, { Transaction, batchSize } from '../../util/db';
-import { ServiceError } from '../../util/errors';
+import { MultiWorkItemUpdateTimeoutError, ServiceError, WorkItemUpdateTimeoutError } from '../../util/errors';
 import { completeJob } from '../../util/job';
 import { objectStoreForProtocol } from '../../util/object-store';
 import { StacItem, readCatalogItems, StacItemLink, StacCatalog } from '../../util/stac';
-import { resolve } from '../../util/url';
+import { resolve as resolveUrl } from '../../util/url';
 import { QUERY_CMR_SERVICE_REGEX, calculateQueryCmrLimit } from '../../backends/workflow-orchestration/util';
 import { makeWorkScheduleRequest } from '../../backends/workflow-orchestration/work-item-polling';
 
@@ -255,7 +255,7 @@ async function getItemLinksFromCatalog(catalogPath: string): Promise<StacItemLin
     if (link.rel === 'item') {
       // make relative path absolute
       const { href } = link;
-      link.href = resolve(catalogPath, href);
+      link.href = resolveUrl(catalogPath, href);
       links.push(link);
     }
   }
@@ -827,49 +827,63 @@ export async function processWorkItem(
  * @param workflowStepIndex - the current workflow step of the work item
  * @param items - a list of work item update items
  * @param logger - the Logger for the request
+ * @returns boolean - true unless the database transaction block doesn't finish
+ * before the timeout
  */
 export async function processWorkItems(
   jobID: string,
   workflowStepIndex: number,
   items: WorkItemUpdateQueueItem[],
-  logger: Logger): Promise<void> {
+  logger: Logger): Promise<boolean> {
   try {
     const transactionStart = new Date().getTime();
 
     await db.transaction(async (tx) => {
-      const job = await (await logAsyncExecutionTime(
-        Job.byJobID,
-        'HWIUWJI.Job.byJobID',
-        logger))(tx, jobID, false, true);
+      await new Promise<void>(async (resolve, reject) => {
+        const processingTimer = setTimeout(async () => {
+          reject(new MultiWorkItemUpdateTimeoutError(jobID, workflowStepIndex));
+        }, env.workItemUpdateTimeoutMs);
+        const job = await (await logAsyncExecutionTime(
+          Job.byJobID,
+          'HWIUWJI.Job.byJobID',
+          logger))(tx, jobID, false, true);
 
-      const thisStep: WorkflowStep = await (await logAsyncExecutionTime(
-        getWorkflowStepByJobIdStepIndex,
-        'HWIUWJI.getWorkflowStepByJobIdStepIndex',
-        logger))(tx, jobID, workflowStepIndex);
-      let nextStep: WorkflowStep | string = await (await logAsyncExecutionTime(
-        getWorkflowStepByJobIdStepIndex,
-        'HWIUWJI.getWorkflowStepByJobIdStepIndex',
-        logger))(tx, jobID, workflowStepIndex + 1);
-      if (nextStep == undefined) {
-        nextStep = NO_NEXT_STEP;
-      }
-
-      const lastIndex = items.length - 1;
-      for (let index = 0; index < items.length; index++) {
-        const { preprocessResult, update }  = items[index];
-        if (index < lastIndex) {
-          await processWorkItem(tx, preprocessResult, job, update, logger, false, thisStep, nextStep);
-        } else {
-          await processWorkItem(tx, preprocessResult, job, update, logger, true, thisStep, nextStep);
+        const thisStep: WorkflowStep = await (await logAsyncExecutionTime(
+          getWorkflowStepByJobIdStepIndex,
+          'HWIUWJI.getWorkflowStepByJobIdStepIndex',
+          logger))(tx, jobID, workflowStepIndex);
+        let nextStep: WorkflowStep | string = await (await logAsyncExecutionTime(
+          getWorkflowStepByJobIdStepIndex,
+          'HWIUWJI.getWorkflowStepByJobIdStepIndex',
+          logger))(tx, jobID, workflowStepIndex + 1);
+        if (nextStep == undefined) {
+          nextStep = NO_NEXT_STEP;
         }
-      }
+
+        const lastIndex = items.length - 1;
+        for (let index = 0; index < items.length; index++) {
+          const { preprocessResult, update }  = items[index];
+          if (index < lastIndex) {
+            await processWorkItem(tx, preprocessResult, job, update, logger, false, thisStep, nextStep);
+          } else {
+            await processWorkItem(tx, preprocessResult, job, update, logger, true, thisStep, nextStep);
+          }
+        }
+        clearTimeout(processingTimer);
+        resolve();
+      });
     });
     const durationMs = new Date().getTime() - transactionStart;
     logger.debug('timing.HWIUWJI.transaction.end', { durationMs });
   } catch (e) {
     logger.error('Unable to acquire lock on Jobs table');
     logger.error(e);
+    if (e instanceof MultiWorkItemUpdateTimeoutError) {
+      // possibly throw errors instead as more error handling needs arise
+      return false;
+    }
   }
+  return true;
 }
 
 /**
@@ -879,30 +893,43 @@ export async function processWorkItems(
  * @param update - information about the work item update
  * @param operation - the DataOperation for the user's request
  * @param logger - the Logger for the request
+ * @returns boolean - true unless the database transaction block doesn't finish
+ * before the timeout
  */
 export async function handleWorkItemUpdateWithJobId(
   jobID: string,
   update: WorkItemUpdate,
   operation: object,
-  logger: Logger): Promise<void> {
+  logger: Logger): Promise<boolean> {
   try {
     const preprocessResult = await preprocessWorkItem(update, operation, logger);
     const transactionStart = new Date().getTime();
     await db.transaction(async (tx) => {
-      const job = await (await logAsyncExecutionTime(
-        Job.byJobID,
-        'HWIUWJI.Job.byJobID',
-        logger))(tx, jobID, false, true);
+      await new Promise<void>(async (resolve, reject) => {
+        const processingTimer = setTimeout(async () => {
+          reject(new WorkItemUpdateTimeoutError(jobID, update.workItemID));
+        }, env.workItemUpdateTimeoutMs);
+        const job = await (await logAsyncExecutionTime(
+          Job.byJobID,
+          'HWIUWJI.Job.byJobID',
+          logger))(tx, jobID, false, true);
 
-      await processWorkItem(tx, preprocessResult, job, update, logger);
-
+        await processWorkItem(tx, preprocessResult, job, update, logger);
+        clearTimeout(processingTimer);
+        resolve();
+      });
     });
     const durationMs = new Date().getTime() - transactionStart;
     logger.debug('timing.HWIUWJI.transaction.end', { durationMs });
   } catch (e) {
     logger.error(`Failed to process work item update for work item: ${update.workItemID}`);
     logger.error(e);
+    if (e instanceof WorkItemUpdateTimeoutError) {
+      // possibly throw errors instead as more error handling needs arise
+      return false;
+    }
   }
+  return true;
 }
 
 /**
@@ -911,16 +938,17 @@ export async function handleWorkItemUpdateWithJobId(
  * @param update - information about the work item update
  * @param operation - the DataOperation for the user's request
  * @param logger - the Logger for the request
+ * @returns boolean - true unless the database updates time out
  */
 export async function handleWorkItemUpdate(
   update: WorkItemUpdate,
   operation: object,
-  logger: Logger): Promise<void> {
+  logger: Logger): Promise<boolean> {
   const { workItemID } = update;
   // get the jobID for the work item
   const jobID = await (await logAsyncExecutionTime(
     getJobIdForWorkItem,
     'getJobIdForWorkItem',
     logger))(workItemID);
-  await exports.handleWorkItemUpdateWithJobId(jobID, update, operation, logger);
+  return exports.handleWorkItemUpdateWithJobId(jobID, update, operation, logger);
 }

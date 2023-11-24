@@ -112,6 +112,10 @@ class HarmonyServerEnv extends HarmonyEnv implements IHarmonyServerEnv {
   @Min(0)
   workItemRetryLimit: number;
 
+  @IsInt()
+  @Min(1)
+  workItemUpdateTimeoutMs: number;
+
   @IsNotEmpty()
   objectStoreType: string;
 

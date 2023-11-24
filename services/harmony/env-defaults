@@ -90,6 +90,9 @@ SYNC_REQUEST_POLL_INTERVAL_MS=100
 # Number of times to retry a failed work item
 WORK_ITEM_RETRY_LIMIT=5
 
+# Number of ms before timing out a work item update
+WORK_ITEM_UPDATE_TIMEOUT_MS=5
+
 # The maximum number of input granules in each invocation of a service
 MAX_BATCH_INPUTS=1000000000000
 
