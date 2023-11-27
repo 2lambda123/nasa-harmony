@@ -1,4 +1,5 @@
 process.env.NODE_ENV = 'test';
+process.env.DATABASE_TYPE = 'sqlite';
 // work-around to pass check in app/util/env.ts - should be refactored
 process.env.SHARED_SECRET_KEY = 'foo';
 // We do not use an EDL application or call backend services in our tests.

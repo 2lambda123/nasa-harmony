@@ -536,6 +536,7 @@ export async function preprocessWorkItem(
   update: WorkItemUpdate,
   operation: object,
   logger: Logger): Promise<WorkItemPreprocessInfo> {
+  console.log('PREPROCESS WORK ITEM');
   const startTime = new Date().getTime();
   const { results } = update;
   let { errorMessage, status } = update;
@@ -596,6 +597,7 @@ export async function processWorkItem(
   checkCompletion = true,
   thisStep: WorkflowStep = undefined,
   nextStep: WorkflowStep | string = undefined): Promise<void> {
+  console.log('PROCESS WORK ITEM');
   const { jobID } = job;
   const { status, errorMessage, catalogItems, outputItemSizes } = preprocessResult;
   const { workItemID, hits, results, scrollID } = update;
@@ -848,16 +850,19 @@ export async function processWorkItems(
   try {
     const transactionStart = new Date().getTime();
 
+    console.log('processWorkItems tx');
     await db.transaction(async (tx) => {
       await new Promise<void>(async (resolve, reject) => {
         const processingTimer = setTimeout(async () => {
           reject(new MultiWorkItemUpdateTimeoutError(jobID, workflowStepIndex));
         }, env.workItemUpdateTimeoutMs);
+        console.log('get the job 2');
         const job = await (await logAsyncExecutionTime(
           Job.byJobID,
           'HWIUWJI.Job.byJobID',
           logger))(tx, jobID, false, true);
-
+        console.log('got the job 2');
+        console.log('get the steps 2');
         const thisStep: WorkflowStep = await (await logAsyncExecutionTime(
           getWorkflowStepByJobIdStepIndex,
           'HWIUWJI.getWorkflowStepByJobIdStepIndex',
@@ -869,14 +874,14 @@ export async function processWorkItems(
         if (nextStep == undefined) {
           nextStep = NO_NEXT_STEP;
         }
-
+        console.log('got the steps 2');
         const lastIndex = items.length - 1;
         for (let index = 0; index < items.length; index++) {
           const { preprocessResult, update }  = items[index];
           if (index < lastIndex) {
-            await processWorkItem(tx, preprocessResult, job, update, logger, false, thisStep, nextStep);
+            await exports.processWorkItem(tx, preprocessResult, job, update, logger, false, thisStep, nextStep);
           } else {
-            await processWorkItem(tx, preprocessResult, job, update, logger, true, thisStep, nextStep);
+            await exports.processWorkItem(tx, preprocessResult, job, update, logger, true, thisStep, nextStep);
           }
         }
         clearTimeout(processingTimer);
@@ -888,6 +893,8 @@ export async function processWorkItems(
   } catch (e) {
     logger.error('Unable to acquire lock on Jobs table');
     logger.error(e);
+    console.log('Unable to acquire lock on Jobs table', (typeof e), (e instanceof WorkItemUpdateTimeoutError));
+    console.log(e.message);
     if (e instanceof MultiWorkItemUpdateTimeoutError) {
       // possibly throw errors instead as more error handling needs arise
       return false;
@@ -914,17 +921,19 @@ export async function handleWorkItemUpdateWithJobId(
   try {
     const preprocessResult = await preprocessWorkItem(update, operation, logger);
     const transactionStart = new Date().getTime();
+    console.log('handleWorkItemUpdateWithJobId tx');
     await db.transaction(async (tx) => {
       await new Promise<void>(async (resolve, reject) => {
         const processingTimer = setTimeout(async () => {
           reject(new WorkItemUpdateTimeoutError(jobID, update.workItemID));
         }, env.workItemUpdateTimeoutMs);
+        console.log('get the job');
         const job = await (await logAsyncExecutionTime(
           Job.byJobID,
           'HWIUWJI.Job.byJobID',
           logger))(tx, jobID, false, true);
-
-        await processWorkItem(tx, preprocessResult, job, update, logger);
+        console.log('got the job');
+        await exports.processWorkItem(tx, preprocessResult, job, update, logger);
         clearTimeout(processingTimer);
         resolve();
       });
@@ -933,6 +942,8 @@ export async function handleWorkItemUpdateWithJobId(
     logger.debug('timing.HWIUWJI.transaction.end', { durationMs });
   } catch (e) {
     logger.error(`Failed to process work item update for work item: ${update.workItemID}`);
+    console.log(`Failed to process work item update for work item: ${update.workItemID}`, (typeof e), (e instanceof WorkItemUpdateTimeoutError));
+    console.log(e.message);
     logger.error(e);
     if (e instanceof WorkItemUpdateTimeoutError) {
       // possibly throw errors instead as more error handling needs arise

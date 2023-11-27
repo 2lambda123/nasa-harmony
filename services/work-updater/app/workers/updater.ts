@@ -74,7 +74,9 @@ async function handleBatchWorkItemUpdatesWithJobId(
         }));
       const didNotTimeOut = await processWorkItems(jobID, parseInt(workflowStepIndex), preprocessedWorkItems, logger);
       if (didNotTimeOut) {
-        receipts.push(workItems.map(item => item.receipt));
+        for (const item of workItems) {
+          receipts.push(item.receipt);
+        }
       }
     }
   }
@@ -119,6 +121,7 @@ export async function handleBatchWorkItemUpdates(
     const startTime = Date.now();
     logger.debug(`Processing ${jobUpdates[jobID].length} work item updates for job ${jobID}`);
     const jobReceipts = await handleBatchWorkItemUpdatesWithJobId(jobID, jobUpdates[jobID], logger);
+    console.log(jobReceipts);
     receipts.push(...jobReceipts);
     const endTime = Date.now();
     logger.debug(`Processing ${jobUpdates[jobID].length} work item updates for job ${jobID} took ${endTime - startTime} ms`);
@@ -146,7 +149,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   }
 
   defaultLogger.debug(`Processing ${messages.length} work item updates from queue`);
-
+  console.log(queueType);
   if (queueType === WorkItemQueueType.LARGE_ITEM_UPDATE) {
     // process each message individually
     for (const msg of messages) {
@@ -180,6 +183,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
     try {
       // all the receipts for the updates that did not time out
       receipts = await exports.handleBatchWorkItemUpdates(updates, defaultLogger);
+      console.log(receipts);
     } catch (e) {
       defaultLogger.error(`Error processing work item updates from queue: ${e}`);
     }

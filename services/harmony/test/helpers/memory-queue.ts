@@ -28,7 +28,7 @@ export class MemoryQueue extends Queue {
     const message = this.messages.find((m) => m.isVisible);
     if (message) {
       message.isVisible = false;
-      message.receipt = uuid();
+      if (!message.receipt) message.receipt = uuid();
     }
     return message;
   }
@@ -42,7 +42,7 @@ export class MemoryQueue extends Queue {
       if (messages.length > 0) {
         messages.forEach((m) => {
           m.isVisible = false;
-          m.receipt = uuid();
+          if (!m.receipt) m.receipt = uuid();
         });
       }
     }
@@ -54,8 +54,8 @@ export class MemoryQueue extends Queue {
   }
 
   // we don't care about groupId for testing purposes
-  async sendMessage(msg: string, _groupId?: string, shouldProcessQueue = true): Promise<void> {
-    this.messages.push({ receipt: '', body: msg, isVisible: true });
+  async sendMessage(msg: string, _groupId?: string, shouldProcessQueue = true, receipt = ''): Promise<void> {
+    this.messages.push({ receipt, body: msg, isVisible: true });
     if (shouldProcessQueue && [WorkItemQueueType.SMALL_ITEM_UPDATE, WorkItemQueueType.LARGE_ITEM_UPDATE]
       .includes(this.queueType)) {
       await batchProcessQueue(this.queueType);
