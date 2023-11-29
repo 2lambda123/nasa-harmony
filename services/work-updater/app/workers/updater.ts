@@ -138,6 +138,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   const startTime = Date.now();
   // use a smaller batch size for the large item update queue otherwise use the SQS max batch size
   // of 10
+  console.log(env.largeWorkItemUpdateQueueMaxBatchSize);
   const largeItemQueueBatchSize = Math.min(env.largeWorkItemUpdateQueueMaxBatchSize, 10);
   const otherQueueBatchSize = 10; // the SQS max batch size
   const queueBatchSize = queueType === WorkItemQueueType.LARGE_ITEM_UPDATE
@@ -147,7 +148,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   if (messages.length < 1) {
     return;
   }
-
+  console.log(`Processing ${messages.length} work item updates from queue`);
   defaultLogger.debug(`Processing ${messages.length} work item updates from queue`);
   console.log(queueType);
   if (queueType === WorkItemQueueType.LARGE_ITEM_UPDATE) {
@@ -158,8 +159,11 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
         const updateItem: WorkItemUpdateQueueItem = new WorkItemUpdateQueueItem(msg);
         const { update, operation } = updateItem;
         defaultLogger.debug(`Processing work item update from queue for work item ${update.workItemID} and status ${update.status}`);
-        didNotTimeOut = await handleWorkItemUpdate(update, operation, defaultLogger);
+        console.log(`Processing work item update from queue for work item ${update.workItemID} and status ${update.status}`)
+        const workItemLogger = defaultLogger.child({ workItemId: update.workItemID });
+        didNotTimeOut = await handleWorkItemUpdate(update, operation, workItemLogger);
       } catch (e) {
+        console.log(`Error processing work item update from queue: ${e}`);
         defaultLogger.error(`Error processing work item update from queue: ${e}`);
       }
       try {

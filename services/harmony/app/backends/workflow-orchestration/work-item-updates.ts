@@ -878,10 +878,11 @@ export async function processWorkItems(
         const lastIndex = items.length - 1;
         for (let index = 0; index < items.length; index++) {
           const { preprocessResult, update }  = items[index];
+          const workItemLogger = logger.child({ workItemId: update.workItemID });
           if (index < lastIndex) {
-            await exports.processWorkItem(tx, preprocessResult, job, update, logger, false, thisStep, nextStep);
+            await exports.processWorkItem(tx, preprocessResult, job, update, workItemLogger, false, thisStep, nextStep);
           } else {
-            await exports.processWorkItem(tx, preprocessResult, job, update, logger, true, thisStep, nextStep);
+            await exports.processWorkItem(tx, preprocessResult, job, update, workItemLogger, true, thisStep, nextStep);
           }
         }
         clearTimeout(processingTimer);
