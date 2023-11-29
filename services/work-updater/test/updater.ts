@@ -293,8 +293,6 @@ describe('Updater Worker timeouts', async function () {
   
   describe('large item update queue', async function () {
 
-    hookTransaction();
-
     before(async function () {
       this.processWorkItemStub = buildProcessWorkItemStub([1, 7, 10]);
 
