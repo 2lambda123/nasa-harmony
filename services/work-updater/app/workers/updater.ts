@@ -146,7 +146,9 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   if (messages.length < 1) {
     return;
   }
+
   defaultLogger.debug(`Processing ${messages.length} work item updates from queue`);
+
   if (queueType === WorkItemQueueType.LARGE_ITEM_UPDATE) {
     // process each message individually
     for (const msg of messages) {
