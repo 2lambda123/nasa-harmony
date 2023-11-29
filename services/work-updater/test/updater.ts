@@ -175,7 +175,6 @@ describe('Updater Worker timeouts', async function () {
   const largeItemUpdateQueue = new MemoryQueue();
 
   before(function () { // return the in-memory queues for testing
-    console.log('--- before ---');
     this.getQueueForTypeStub = sinon.stub(queueFactory, 'getQueueForType').callsFake(function (type: WorkItemQueueType) {
       if (type === WorkItemQueueType.SMALL_ITEM_UPDATE) {
         return smallItemUpdateQueue;
@@ -187,7 +186,6 @@ describe('Updater Worker timeouts', async function () {
   });
 
   after(function () {
-    console.log('--- after ---');
     this.getQueueForTypeStub.restore();
     this.workItemUpdateTimeoutMsSub.restore();
     this.largeWorkItemUpdateQueueMaxBatchSizeStub.restore();
@@ -198,7 +196,6 @@ describe('Updater Worker timeouts', async function () {
     hookTransaction();
 
     before(async function () {
-      console.log('--- before small ---');
       const jobA = new Job({ jobID: 'job-a', request: 'http://localhost:3000/req', requestId: '', username: '', numInputGranules: 10, collectionIds: [] });
       await jobA.save(this.trx);
       await ((new WorkflowStep({ jobID: 'job-a', serviceID: 'x', stepIndex: 1, workItemCount: 10, operation: '{}' })).save(this.trx));
@@ -256,9 +253,7 @@ describe('Updater Worker timeouts', async function () {
         preprocessResult: wiu.WorkItemPreprocessInfo,
         job: Job,
         update: WorkItemUpdate): Promise<void> {
-        console.log('processWorkItem STUB');
         if ([2, 9].indexOf(update.workItemID) > -1) {
-          console.log(update.workItemID, 'timing out');
           await new Promise<void>(async (resolve) => {
             const timer = setTimeout(async () => {
               resolve();
@@ -266,23 +261,17 @@ describe('Updater Worker timeouts', async function () {
             }, 100);
           });
         } else { // fast process
-          console.log(update.workItemID, 'returning right away');
           return;
         } 
       });
-      console.log('MADE STUBS!');
-      console.log(wiu.processWorkItem.prototype);
     });
 
     after(function () {
-      console.log('--- after small ---');
       this.processWorkItemStub.restore();
-      console.log('RESTORE STUBS');
     });
 
     describe('when some queue items timeout', async function () {
       it('leaves the timed out items on the queue so that they can be processed again', async function () {
-        console.log('-- small it ---');
         await updater.batchProcessQueue(WorkItemQueueType.SMALL_ITEM_UPDATE);
         expect(smallItemUpdateQueue.messages).deep.equal([
           {
@@ -310,7 +299,6 @@ describe('Updater Worker timeouts', async function () {
     hookTransaction();
 
     before(async function () {
-      console.log('--- before large ---');
       const jobA = new Job({ jobID: 'job-a', request: 'http://localhost:3000/req', requestId: '', username: '', numInputGranules: 10, collectionIds: [] });
       await jobA.save(this.trx);
       await ((new WorkflowStep({ jobID: 'job-a', serviceID: 'x', stepIndex: 1, workItemCount: 10, operation: '{}' })).save(this.trx));
@@ -368,9 +356,7 @@ describe('Updater Worker timeouts', async function () {
         preprocessResult: wiu.WorkItemPreprocessInfo,
         job: Job,
         update: WorkItemUpdate): Promise<void> {
-        console.log('processWorkItem STUB');
         if ([1, 7, 10].indexOf(update.workItemID) > -1) {
-          console.log(update.workItemID, 'timing out');
           await new Promise<void>(async (resolve) => {
             const timer = setTimeout(async () => {
               resolve();
@@ -378,23 +364,17 @@ describe('Updater Worker timeouts', async function () {
             }, 100);
           });
         } else { // fast process
-          console.log(update.workItemID, 'returning right away');
           return;
         } 
       });
-      console.log('MADE STUBS!');
-      console.log(wiu.processWorkItem.prototype);
     });
 
     after(function () {
-      console.log('--- after large ---');
       this.processWorkItemStub.restore();
-      console.log('RESTORE STUBS');
     });
 
     describe('when some queue items timeout', async function () {
       it('leaves the timed out items on the queue so that they can be processed again', async function () {
-        console.log('--- large it ---');
         await updater.batchProcessQueue(WorkItemQueueType.LARGE_ITEM_UPDATE);
         expect(largeItemUpdateQueue.messages).deep.equal([
           {
