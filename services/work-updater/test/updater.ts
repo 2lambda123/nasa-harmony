@@ -188,12 +188,12 @@ describe('Updater Worker timeouts', async function () {
       job: Job,
       update: WorkItemUpdate): Promise<void> {
       if (timeoutItemIds.indexOf(update.workItemID) > -1) {
-        // simulate something that takes long (should time out)
         await new Promise<void>(async (resolve) => {
           const timer = setTimeout(async () => {
             resolve();
             clearTimeout(timer);
-          }, 100);
+            // should time out
+          }, 10); // greater than env.workItemUpdateTimeoutMs
         });
       } else { // fast process
         return;
@@ -236,7 +236,7 @@ describe('Updater Worker timeouts', async function () {
       }
       return largeItemUpdateQueue;
     });
-    this.workItemUpdateTimeoutMsSub = sinon.stub(harmonyEnv, 'workItemUpdateTimeoutMs').get(() => 50);
+    this.workItemUpdateTimeoutMsSub = sinon.stub(harmonyEnv, 'workItemUpdateTimeoutMs').get(() => 9);
     this.largeWorkItemUpdateQueueMaxBatchSizeStub = sinon.stub(workUpdaterEnv, 'largeWorkItemUpdateQueueMaxBatchSize').get(() => 10);
   });
 
