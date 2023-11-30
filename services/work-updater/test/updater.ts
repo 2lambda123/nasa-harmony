@@ -20,8 +20,13 @@ describe('Updater Worker', async function () {
   let getJobIdForWorkItemStub: SinonStub;
   let handleWorkItemUpdateWithJobIdStub: SinonStub;
   let handleBatchWorkItemUpdatesSpy: SinonSpy;
+  let processWorkItemStub: SinonStub;
 
   before(function () {
+    processWorkItemStub = sinon.stub(wiu, 'processWorkItem').callsFake(async function (): Promise<void> {
+      return;
+    });
+
     getQueueForTypeStub = sinon.stub(queueFactory, 'getQueueForType').callsFake(function (type: WorkItemQueueType) {
       if (type === WorkItemQueueType.SMALL_ITEM_UPDATE) {
         return smallUpdateQueue;
@@ -42,6 +47,7 @@ describe('Updater Worker', async function () {
     getJobIdForWorkItemStub.restore();
     handleWorkItemUpdateWithJobIdStub.restore();
     handleBatchWorkItemUpdatesSpy.restore();
+    processWorkItemStub.restore();
   });
 
   this.beforeEach(function () {
