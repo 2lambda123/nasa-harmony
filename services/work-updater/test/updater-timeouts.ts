@@ -15,6 +15,7 @@ import { Job } from '../../harmony/app/models/job';
 import * as db from '../../harmony/app/util/db';
 import { hookTransaction } from './helpers/db';
 import { WorkItemStatus } from '../../harmony/app/models/work-item-interface';
+import { SinonStub } from 'sinon';
 
 
 describe('Updater Worker timeouts', async function () {
