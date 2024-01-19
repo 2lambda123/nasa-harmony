@@ -1,42 +1,29 @@
-import WorkItemUpdate from './work-item-update';
 
-export class WorkflowStepProgress {
+// in some cases totalItemCount won't change
+// only need to set WorkflowStep.totalItemCount once in these cases
+//
+// if (thisStep.isQueryCmr) {
+//   return Math.ceil(this.numInputGranules / env.cmrMaxPageSize);
+// } else if (prevStep.isQueryCmr) {
+//   return jobInputGranules;
+// } else if (thisStepIsNonBatchedAggregating) {
+//   return 1;
+// } else if (prevStepIsNonBatchedAggregating) {
+//   return workItemCountForStep(thisStep)
+//
+// }
+// for other cases totalItemCount, needs to be incremented as items are created
 
-  workflowStepId: number; // id of the workflow step, indexed
+// when the workflow steps are inserted
+// initialize percentOfJobComplete, totalItemCount and completeItemCount,
+// and totalSteps. totalItemCount may be 0 or can be predicted upfront in some cases.
 
-  jobId: number; // indexed
-
-  // these could get pulled from elsewhere (workflow step) or
-  // stored in this table
-  // if stored here, would need to ensure they're being updated appropriately
-  // if pulled elsewhere would need to update that code for better accuracy
-
-  // cases where totalItemCount won't change
-  //
-  // if (thisStep.isQueryCmr) {
-  //   return Math.ceil(this.numInputGranules / env.cmrMaxPageSize);
-  // } else if (prevStep.isQueryCmr) {
-  //   return jobInputGranules;
-  // } else if (thisStepIsNonBatchedAggregating) {
-  //   return 1;
-  // } else if (prevStepIsNonBatchedAggregating) {
-  //   return workItemCountForStep(thisStep)
-  //
-  // }
-  // for other cases, these need to be incremented as items are created and updated
-
-  completeItemCount: number; // (count for this step only)
+export class WorkflowStep {
   
-  totalItemCount: number; // (count for this step only)
+  // see top of file comment
+  totalItemCount: number;
 
   isComplete: boolean;
-
-  //
-  //
-
-  totalSteps: number;
-
-  percentOfJobComplete: number; // estimated
 
   // information about the type of step
 
@@ -46,22 +33,21 @@ export class WorkflowStepProgress {
 
   isAggregating: boolean;
 
+  //
+  // NEW fields
+  //
+  
+  completeItemCount: number; // count for this step only, incremented in main item update transaction
+
+  percentOfJobComplete: number; // estimated
 }
-
-// getJobProgress()
-//   join the Job(s) with WorkflowStepProgress and sum up the percentOfJobComplete
-
-// createWorkflowStepProgress()
-//   insert these when the workflow steps are inserted
-//   initialize percentOfJobComplete, totalItemCount and completeItemCount to 0,
-//   and totalSteps to the total number of workflow steps
 
 /**
  * Get the best estimate for totalItemCount for the current WorkflowStepProgress.
  * Assumes that DB queries that take place for aggregation steps and steps following aggregation steps
  * won't be perfomrmed very frequently since (for now) they'll tend to have a smaller number of work items.
  */
-function estimateTotalItemCount(thisStep: WorkflowStepProgress, prevStep: WorkflowStepProgress): number {
+function estimateTotalItemCount(thisStep: WorkflowStep, prevStep: WorkflowStep): number {
   if (prevStep.isComplete) {
     return thisStep.totalItemCount;
   }
@@ -77,18 +63,18 @@ function estimateTotalItemCount(thisStep: WorkflowStepProgress, prevStep: Workfl
   if (thisStepIsBatchedAggregating) {
     return thisStep.totalItemCount + 1;
   } else {
-    return Math.max(prevStep.totalItemCount, thisStep.totalItemCount + 1);
+    // return estimate ~= closest parent step that has all its work items
   }
 }
 
 /**
- * Called on each work item update, outside of the large update transaction.
- * Updates the WorkflowStepProgress completeItemCount, totalItemCount, percentDone.
+ * Called on each work item update.
  * @param _stepId - the WorkflowStep id that the workItemUpdate belongs to
  */
-export function updateProgress(_stepId: number): void {
-  let thisStep: WorkflowStepProgress; // retrieve from DB based on stepId
-  let prevStep: WorkflowStepProgress; // retrieve from DB based on stepId - 1
+export function calculateProgress(): void {
+  let allSteps: WorkflowStep[];
+  let thisStep: WorkflowStep;
+  let prevStep: WorkflowStep;
 
   if (thisStep.isComplete) {
     // return;
@@ -101,8 +87,9 @@ export function updateProgress(_stepId: number): void {
     fractionOfStepComplete = 1;
   }
   thisStep.percentOfJobComplete = 
-    ((fractionOfStepComplete) / thisStep.totalSteps) * 100;
+    ((fractionOfStepComplete) / allSteps.length) * 100;
   // thisStepProgress.save()  
+  // if (sum(steps.percentOfJobComplete) - job.progress > someDelta) update job progress 
 }
 
 
