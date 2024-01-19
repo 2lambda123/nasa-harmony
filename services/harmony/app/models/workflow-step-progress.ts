@@ -28,7 +28,8 @@ export class WorkflowStepProgress {
 
   isAggregating: boolean;
 
-  // should get set by other sections of the code that already check for this
+  // should get set/persisted by other sections of the code that already check for this.
+  // also, when this gets set by other code, we should set percentOfJobComplete to 100 / totalSteps?
   isComplete: boolean; 
 }
 
@@ -92,6 +93,10 @@ export function updateProgress(workItemUpdate: WorkItemUpdate, _stepId: number, 
   let thisStep: WorkflowStepProgress; // retrieve from DB based on stepId
   let prevStep: WorkflowStepProgress; // retrieve from DB based on stepId - 1
   let mutatedThisStepProgress = false;
+
+  if (thisStep.isComplete) {
+    // return;
+  }
   
   // possibly update completeItemCount
   if (COMPLETED_WORK_ITEM_STATUSES.includes(workItemUpdate.status)) {
