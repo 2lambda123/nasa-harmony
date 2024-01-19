@@ -44,8 +44,6 @@ export class WorkflowStep {
 
 /**
  * Get the best estimate for totalItemCount for the current WorkflowStepProgress.
- * Assumes that DB queries that take place for aggregation steps and steps following aggregation steps
- * won't be perfomrmed very frequently since (for now) they'll tend to have a smaller number of work items.
  */
 function estimateTotalItemCount(thisStep: WorkflowStep, prevStep: WorkflowStep): number {
   if (prevStep.isComplete) {
