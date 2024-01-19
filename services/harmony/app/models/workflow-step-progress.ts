@@ -1,5 +1,3 @@
-import env from '../util/env';
-import { COMPLETED_WORK_ITEM_STATUSES } from './work-item-interface';
 import WorkItemUpdate from './work-item-update';
 
 export class WorkflowStepProgress {
@@ -8,13 +6,33 @@ export class WorkflowStepProgress {
 
   jobId: number; // indexed
 
-  // numbers for progress/progress calculation
+  // these could get pulled from elsewhere (workflow step) or
+  // stored in this table
+  // if stored here, would need to ensure they're being updated appropriately
+  // if pulled elsewhere would need to update that code for better accuracy
+
+  // cases where totalItemCount won't change
+  //
+  // if (thisStep.isQueryCmr) {
+  //   return Math.ceil(this.numInputGranules / env.cmrMaxPageSize);
+  // } else if (prevStep.isQueryCmr) {
+  //   return jobInputGranules;
+  // } else if (thisStepIsNonBatchedAggregating) {
+  //   return 1;
+  // } else if (prevStepIsNonBatchedAggregating) {
+  //   return workItemCountForStep(thisStep)
+  //
+  // }
+  // for other cases, these need to be incremented as items are created and updated
 
   completeItemCount: number; // (count for this step only)
+  
+  totalItemCount: number; // (count for this step only)
 
-  totalItemCount: number; // estimated (count for this step only)
+  isComplete: boolean;
 
-  gotFinalTotalItemCount: boolean;
+  //
+  //
 
   totalSteps: number;
 
@@ -28,9 +46,6 @@ export class WorkflowStepProgress {
 
   isAggregating: boolean;
 
-  // should get set/persisted by other sections of the code that already check for this.
-  // also, when this gets set by other code, we should set percentOfJobComplete to 100 / totalSteps?
-  isComplete: boolean; 
 }
 
 // getJobProgress()
@@ -46,38 +61,21 @@ export class WorkflowStepProgress {
  * Assumes that DB queries that take place for aggregation steps and steps following aggregation steps
  * won't be perfomrmed very frequently since (for now) they'll tend to have a smaller number of work items.
  */
-function estimateTotalItemCount(thisStep: WorkflowStepProgress, prevStep: WorkflowStepProgress, jobInputGranules: number): number {
+function estimateTotalItemCount(thisStep: WorkflowStepProgress, prevStep: WorkflowStepProgress): number {
+  if (prevStep.isComplete) {
+    return thisStep.totalItemCount;
+  }
   const thisStepIsNonBatchedAggregating = thisStep.isAggregating && !thisStep.isBatched;
   const thisStepIsBatchedAggregating = thisStep.isAggregating && thisStep.isBatched;
   const prevStepIsNonBatchedAggregating = prevStep.isAggregating && !prevStep.isBatched;
-  if (thisStep.totalItemCount && (thisStep.isQueryCmr || thisStepIsNonBatchedAggregating || prevStepIsNonBatchedAggregating)) {
-    return; // the totalItemCount won't change and is already set
-  }
-  // cases where totalItemCount won't change but is not already set
-  if (thisStep.isQueryCmr) {
-    return Math.ceil(this.numInputGranules / env.cmrMaxPageSize);
-  } else if (prevStep.isQueryCmr) {
-    return jobInputGranules;
-  } else if (thisStepIsNonBatchedAggregating) {
-    return 1;
-  } else if (prevStepIsNonBatchedAggregating) {
-  // return workItemCountForStep(thisStep)
-  //
-  }
-  // first, provide a short circuit for when the totalItemCount for thisStep should stop changing.
-  if (prevStep.isComplete) {
-    if (thisStep.gotFinalTotalItemCount) {
-      return;
-    } else {
-      // will only need to do this once
-      // return workItemCountForStep(thisStep)
-    }
+  if (thisStep.isQueryCmr || thisStepIsNonBatchedAggregating || prevStepIsNonBatchedAggregating) {
+    return thisStep.totalItemCount; // shouldn't change
   }
   // following are cases where totalItemCount for thisStep may continue to grow,
   // and (if we reached this point) the previous step is not yet complete.
   // (below can be tweaked as better heuristics are developed)
   if (thisStepIsBatchedAggregating) {
-    // return workItemCountForStep(thisStep) + 1;
+    return thisStep.totalItemCount + 1;
   } else {
     return Math.max(prevStep.totalItemCount, thisStep.totalItemCount + 1);
   }
@@ -86,41 +84,25 @@ function estimateTotalItemCount(thisStep: WorkflowStepProgress, prevStep: Workfl
 /**
  * Called on each work item update, outside of the large update transaction.
  * Updates the WorkflowStepProgress completeItemCount, totalItemCount, percentDone.
- * @param workItemUpdate - the incoming work item update
  * @param _stepId - the WorkflowStep id that the workItemUpdate belongs to
  */
-export function updateProgress(workItemUpdate: WorkItemUpdate, _stepId: number, jobInputGranules: number): void {
+export function updateProgress(_stepId: number): void {
   let thisStep: WorkflowStepProgress; // retrieve from DB based on stepId
   let prevStep: WorkflowStepProgress; // retrieve from DB based on stepId - 1
-  let mutatedThisStepProgress = false;
 
   if (thisStep.isComplete) {
     // return;
   }
   
-  // possibly update completeItemCount
-  if (COMPLETED_WORK_ITEM_STATUSES.includes(workItemUpdate.status)) {
-    thisStep.completeItemCount += 1;
-    mutatedThisStepProgress = true;
-  }
-  
-  // possibly update totalItemCount
-  const totalItemCount = estimateTotalItemCount(thisStep, prevStep, jobInputGranules);
-  if (totalItemCount && totalItemCount !== thisStep.totalItemCount) {
-    thisStep.totalItemCount = totalItemCount;
-    mutatedThisStepProgress = true;
-  }
+  const estimatedTotalItemCount = estimateTotalItemCount(thisStep, prevStep);
 
-  // possibly update percentOfJobComplete
-  if (mutatedThisStepProgress) {
-    let fractionOfStepComplete = thisStep.completeItemCount / thisStep.totalItemCount;
-    if (fractionOfStepComplete > 1) {
-      fractionOfStepComplete = 1;
-    }
-    thisStep.percentOfJobComplete = 
-      ((fractionOfStepComplete) / thisStep.totalSteps) * 100;
-    // thisStepProgress.save()
+  let fractionOfStepComplete = thisStep.completeItemCount / estimatedTotalItemCount;
+  if (fractionOfStepComplete > 1) {
+    fractionOfStepComplete = 1;
   }
+  thisStep.percentOfJobComplete = 
+    ((fractionOfStepComplete) / thisStep.totalSteps) * 100;
+  // thisStepProgress.save()  
 }
 
 
