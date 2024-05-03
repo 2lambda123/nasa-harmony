@@ -31,8 +31,10 @@ export default class Catalog implements StacCatalog {
    * @param properties - the properties to set on the catalog (description is required)
    */
   constructor(properties: Partial<StacCatalog>) {
-    this.stac_version = '1.0.0-beta.2';
-    this.stac_extensions = [];
+    this.stac_version = '1.0.0';
+    this.stac_extensions = [
+      'https://harmony.earthdata.nasa.gov/schemas/stac-extension/0.1.0/schema.json',
+    ];
     this.id = uuid();
     this.links = [];
     this.children = [];
