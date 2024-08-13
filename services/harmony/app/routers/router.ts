@@ -139,7 +139,7 @@ const authorizedRoutes = [
   '/service-results/*',
   '/workflow-ui*',
   '/service-image*',
-  '/service-deployment*',
+  '/service-deployment\//*',
   '/ogc-api-edr/.*/collections/*',
 ];
 
@@ -222,8 +222,8 @@ export default function router({ skipEarthdataLogin = 'false' }: RouterConfig): 
   result.get(collectionPrefix('wms'), asyncHandler(service(serviceInvoker)));
   result.get(/^.*?\/ogc-api-coverages\/.*?\/collections\/.*?\/coverage\/rangeset\/?$/, asyncHandler(service(serviceInvoker)));
   result.post(/^.*?\/ogc-api-coverages\/.*?\/collections\/.*?\/coverage\/rangeset\/?$/, asyncHandler(service(serviceInvoker)));
-  result.get(/^\/ogc-api-edr\/.*?\/collections\/.*?\/(cube|area)\/?$/, asyncHandler(service(serviceInvoker)));
-  result.post(/^\/ogc-api-edr\/.*?\/collections\/.*?\/(cube|area)\/?$/, asyncHandler(service(serviceInvoker)));
+  result.get(/^\/ogc-api-edr\/.*?\/collections\/.*?\/(cube|area|position)\/?$/, asyncHandler(service(serviceInvoker)));
+  result.post(/^\/ogc-api-edr\/.*?\/collections\/.*?\/(cube|area|position)\/?$/, asyncHandler(service(serviceInvoker)));
   result.get('/jobs', asyncHandler(getJobsListing));
   result.get('/jobs/:jobID', asyncHandler(getJobStatus));
 
