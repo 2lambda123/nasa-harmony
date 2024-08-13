@@ -14,6 +14,7 @@ import env from '../util/env';
 import { logAsyncExecutionTime } from '../../../harmony/app/util/log-execution';
 import { getWorkflowStepByJobIdStepIndex } from '../../../harmony/app/models/workflow-steps';
 import db from '../../../harmony/app/util/db';
+import { Job } from '../../../harmony/app/models/job';
 
 /**
  * Group work item updates by its workflow step and return the grouped work item updates
@@ -176,6 +177,72 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   defaultLogger.debug(`Processed ${messages.length} work item updates from queue in ${endTime - startTime} ms`);
 }
 
+/**
+ * Update any jobs that have have updatedAt older than their most recently updated
+ * work-item
+ * TODO - this is a good candidate to be moved to a separate service
+ */
+export async function updateJobs(): Promise<void> {
+  // get all the jobIDs for jobs that have not been updated since before
+  // their latest work-item update
+  // stream the results as this list might be very large
+  console.log('UPDATING JOBS');
+  const stream = db('jobs as j')
+    .distinct('j.jobID')
+    .join('work_items as w', 'j.jobID', 'w.jobID')
+    .where('j.updatedAt', '<', db.ref('w.updatedAt'))
+    .stream();
+
+  for await (const row of stream) {
+    console.log(row);
+    await db.transaction(async (tx) => {
+      const { job } = await Job.byJobID(tx, row.jobID, false, true);
+
+      // The number of 'hits' returned by a query-cmr could be less than when CMR was first
+      // queried by harmony due to metadata deletions from CMR, so we update the job to reflect
+      // that there are fewer items and to know when no more query-cmr jobs should be created.
+      if (hits && job.numInputGranules > hits) {
+        job.numInputGranules = hits;
+
+        jobSaveStartTime = new Date().getTime();
+        await job.save(tx);
+        durationMs = new Date().getTime() - jobSaveStartTime;
+        logger.info('timing.HWIUWJI.job.save.end', { durationMs });
+
+        await (await logAsyncExecutionTime(
+          updateCmrWorkItemCount,
+          'HWIUWJI.updateCmrWorkItemCount',
+          logger))(tx, job);
+      }
+
+      await job.updateProgress(tx);
+
+      await job.save(tx);
+    });
+
+    // If this job is complete then delete all the work for it from the user_work table
+
+    // if (job.hasTerminalStatus() && status !== WorkItemStatus.CANCELED) {
+    //   logger.warn(`Job was already ${job.status}.`);
+    //   const numRowsDeleted = await (await logAsyncExecutionTime(
+    //     deleteUserWorkForJob,
+    //     'HWIUWJI.deleteUserWorkForJob',
+    //     logger))(tx, jobID);
+    //   logger.warn(`Removed ${numRowsDeleted} from user_work table for job ${jobID}.`);
+    //   // Note work item will stay in the running state, but the reaper will clean it up
+    //   return;
+    // }
+
+    // update user_work_table
+
+    // await (await logAsyncExecutionTime(
+    //   incrementReadyAndDecrementRunningCounts,
+    //   'HWIUWJI.incrementReadyAndDecrementRunningCounts',
+    //   logger))(tx, jobID, workItem.serviceID);
+  }
+
+
+}
 
 export default class Updater implements Worker {
   async start(repeat = true): Promise<void> {
@@ -183,6 +250,7 @@ export default class Updater implements Worker {
     while (repeat) {
       try {
         await batchProcessQueue(env.workItemUpdateQueueType);
+        await updateJobs();
       } catch (e) {
         defaultLogger.error(e);
         await sleep(env.workItemUpdateQueueProcessorDelayAfterErrorSec * 1000);

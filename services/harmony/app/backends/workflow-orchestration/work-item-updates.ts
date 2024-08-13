@@ -20,6 +20,7 @@ import { StacItem, readCatalogItems, StacItemLink, StacCatalog, readCatalogsItem
 import { resolve } from '../../util/url';
 import { QUERY_CMR_SERVICE_REGEX, calculateQueryCmrLimit } from '../../backends/workflow-orchestration/util';
 import { makeWorkScheduleRequest } from '../../backends/workflow-orchestration/work-item-polling';
+import { updateJobFields } from '../service-response';
 
 /**
  * A structure holding the preprocess info of a work item
@@ -206,7 +207,7 @@ async function handleFailedWorkItems(
       } else {
         if (job.status == JobStatus.RUNNING) {
           job.status = JobStatus.RUNNING_WITH_ERRORS;
-          await job.save(tx);
+          // await job.save(tx);
         }
       }
     }
@@ -215,7 +216,7 @@ async function handleFailedWorkItems(
 }
 
 /**
- * Updated the query-cmr workflow step's `workItemCount` field for the given job to match the new
+ * Update the query-cmr workflow step's `workItemCount` field for the given job to match the new
  * granule count
  *
  * @param transaction - the transaction to use for the update
@@ -587,7 +588,6 @@ export async function preprocessWorkItem(
  * Process the work item update using the preprocessed result info and the work item info.
  * Various other parameters are passed in to optimize the processing of a batch of work items.
  * A database lock on the work item related job needs to be acquired before calling this function.
- * WARN To avoid dB deadlocks, this function should be not be called from a Promise.all.
  *
  * @param tx - database transaction with lock on the related job in the jobs table
  * @param preprocessedResult - information obtained in earlier processing for efficiency reasons
@@ -600,15 +600,15 @@ export async function preprocessWorkItem(
 export async function processWorkItem(
   tx: Transaction,
   preprocessResult: WorkItemPreprocessInfo,
-  job: Job,
+  jobID: string,
   update: WorkItemUpdate,
   logger: Logger,
   checkCompletion,
   thisStep: WorkflowStep,
 ): Promise<void> {
-  const { jobID } = job;
+  // const { jobID } = job;
   const { status, errorMessage, catalogItems, outputItemSizes } = preprocessResult;
-  const { workItemID, hits, results, scrollID } = update;
+  const { workItemID, results, scrollID } = update;
   const startTime = new Date().getTime();
   let durationMs;
   let jobSaveStartTime;
@@ -618,8 +618,7 @@ export async function processWorkItem(
   }
 
   try {
-    // lock the work item so we can update it - need to do this after locking jobs table above
-    // to avoid deadlocks
+    // lock the work item so we can update it
     const workItem = await (await logAsyncExecutionTime(
       getWorkItemById,
       'HWIUWJI.getWorkItemById',
@@ -629,16 +628,6 @@ export async function processWorkItem(
         getWorkflowStepByJobIdStepIndex,
         'HWIUWJI.getWorkflowStepByJobIdStepIndex',
         logger))(tx, workItem.jobID, workItem.workflowStepIndex);
-    }
-    if (job.hasTerminalStatus() && status !== WorkItemStatus.CANCELED) {
-      logger.warn(`Job was already ${job.status}.`);
-      const numRowsDeleted = await (await logAsyncExecutionTime(
-        deleteUserWorkForJob,
-        'HWIUWJI.deleteUserWorkForJob',
-        logger))(tx, jobID);
-      logger.warn(`Removed ${numRowsDeleted} from user_work table for job ${jobID}.`);
-      // Note work item will stay in the running state, but the reaper will clean it up
-      return;
     }
 
     // Don't allow updates to work items that are already in a terminal state
@@ -658,10 +647,7 @@ export async function processWorkItem(
         await workItem.save(tx);
         durationMs = new Date().getTime() - workitemSaveStartTime;
         logger.info('timing.HWIUWJI.workItem.save.end', { durationMs });
-        await (await logAsyncExecutionTime(
-          incrementReadyAndDecrementRunningCounts,
-          'HWIUWJI.incrementReadyAndDecrementRunningCounts',
-          logger))(tx, jobID, workItem.serviceID);
+
         return;
       } else {
         logger.warn(`Retry limit of ${env.workItemRetryLimit} exceeded`);
@@ -714,25 +700,8 @@ export async function processWorkItem(
 
     let allWorkItemsForStepComplete = false;
 
-    // The number of 'hits' returned by a query-cmr could be less than when CMR was first
-    // queried by harmony due to metadata deletions from CMR, so we update the job to reflect
-    // that there are fewer items and to know when no more query-cmr jobs should be created.
-    if (hits && job.numInputGranules > hits) {
-      job.numInputGranules = hits;
 
-      jobSaveStartTime = new Date().getTime();
-      await job.save(tx);
-      durationMs = new Date().getTime() - jobSaveStartTime;
-      logger.info('timing.HWIUWJI.job.save.end', { durationMs });
-
-      await (await logAsyncExecutionTime(
-        updateCmrWorkItemCount,
-        'HWIUWJI.updateCmrWorkItemCount',
-        logger))(tx, job);
-    }
-
-    await job.updateProgress(tx);
-    await job.save(tx);
+    // await job.save(tx);
 
     if (checkCompletion) {
       allWorkItemsForStepComplete = await updateIsComplete(tx, jobID, job.numInputGranules, thisStep);
@@ -819,7 +788,7 @@ export async function processWorkItem(
           logger.info('timing.HWIUWJI.job.pauseAndSave.end', { durationMs });
         } else {
           jobSaveStartTime = new Date().getTime();
-          await job.save(tx);
+          // await job.save(tx);
           durationMs = new Date().getTime() - jobSaveStartTime;
           logger.info('timing.HWIUWJI.job.save.end', { durationMs });
         }
@@ -827,7 +796,7 @@ export async function processWorkItem(
       }
 
       jobSaveStartTime = new Date().getTime();
-      await job.save(tx);
+      // await job.save(tx);
       durationMs = new Date().getTime() - jobSaveStartTime;
       logger.info('timing.HWIUWJI.job.save.end', { durationMs });
 
@@ -919,7 +888,7 @@ export async function handleWorkItemUpdateWithJobId(
         logger))(tx, jobID, false, true);
 
       await processWorkItem(tx, preprocessResult, job, update, logger, true, undefined);
-      await job.save(tx);
+      // await job.save(tx);
     });
     const durationMs = new Date().getTime() - transactionStart;
     logger.info('timing.HWIUWJI.transaction.end', { durationMs });
