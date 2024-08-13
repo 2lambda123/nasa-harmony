@@ -15,6 +15,7 @@ const sqliteConfig = {
 const pgConfig = {
   client: 'pg',
   connection: process.env.DATABASE_URL,
+  useNative: false,
   pool: {
     min: 0,
     max: 100,
