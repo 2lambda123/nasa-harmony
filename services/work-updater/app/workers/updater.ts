@@ -12,7 +12,7 @@ import sleep from '../../../harmony/app/util/sleep';
 import { Worker } from '../../../harmony/app/workers/worker';
 import env from '../util/env';
 import { logAsyncExecutionTime } from '../../../harmony/app/util/log-execution';
-import { getWorkflowStepByJobIdStepIndex } from '../../../harmony/app/models/workflow-steps';
+import WorkflowStep, { getWorkflowStepById, getWorkflowStepByJobIdStepIndex } from '../../../harmony/app/models/workflow-steps';
 import db from '../../../harmony/app/util/db';
 import { Job } from '../../../harmony/app/models/job';
 
@@ -118,7 +118,7 @@ export async function handleBatchWorkItemUpdates(
  * This function processes a batch of work item updates from the queue.
  * @param queueType - Type of the queue to read from
  */
-export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<void> {
+export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<number> {
   const queue = getQueueForType(queueType);
   const startTime = Date.now();
   // use a smaller batch size for the large item update queue otherwise use the SQS max batch size
@@ -130,7 +130,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   defaultLogger.debug(`Polling queue ${queueType} for ${queueBatchSize} messages`);
   const messages = await queue.getMessages(queueBatchSize);
   if (messages.length < 1) {
-    return;
+    return messages.length;
   }
 
   defaultLogger.debug(`Processing ${messages.length} work item updates from queue`);
@@ -175,6 +175,7 @@ export async function batchProcessQueue(queueType: WorkItemQueueType): Promise<v
   }
   const endTime = Date.now();
   defaultLogger.debug(`Processed ${messages.length} work item updates from queue in ${endTime - startTime} ms`);
+  return messages.length;
 }
 
 /**
@@ -186,7 +187,7 @@ export async function updateJobs(): Promise<void> {
   // get all the jobIDs for jobs that have not been updated since before
   // their latest work-item update
   // stream the results as this list might be very large
-  console.log('UPDATING JOBS');
+  console.log('UPDATING JOBS ========================================');
   const stream = db('jobs as j')
     .distinct('j.jobID')
     .join('work_items as w', 'j.jobID', 'w.jobID')
@@ -195,62 +196,119 @@ export async function updateJobs(): Promise<void> {
 
   for await (const row of stream) {
     console.log(row);
+    // await db.transaction(async (tx) => {
+    //   const { job } = await Job.byJobID(tx, row.jobID, false, true);
+
+    //   // The number of 'hits' returned by a query-cmr could be less than when CMR was first
+    //   // queried by harmony due to metadata deletions from CMR, so we update the job to reflect
+    //   // that there are fewer items and to know when no more query-cmr jobs should be created.
+    //   if (hits && job.numInputGranules > hits) {
+    //     job.numInputGranules = hits;
+
+    //     jobSaveStartTime = new Date().getTime();
+    //     await job.save(tx);
+    //     durationMs = new Date().getTime() - jobSaveStartTime;
+    //     logger.info('timing.HWIUWJI.job.save.end', { durationMs });
+
+    //     await (await logAsyncExecutionTime(
+    //       updateCmrWorkItemCount,
+    //       'HWIUWJI.updateCmrWorkItemCount',
+    //       logger))(tx, job);
+    //   }
+
+    //   await job.updateProgress(tx);
+
+    //   await job.save(tx);
+    // });
+  }
+}
+
+
+/**
+   * Update any workflow steps that have work-items that were updated more recently than the
+   * workflow step
+   */
+export async function updateWorkflowSteps(): Promise<void> {
+  // get the workflow steps that have work-items that have been updated more recently than the
+  // step, along with the range of updatedAt values for the newer work-items for each step
+  const stream = db('workflow_steps as ws')
+    .column(['ws.id'])
+    .min('w.updatedAt')
+    .max('w.updatedAt')
+    .join('work_items as w', function () {
+      this
+        .on('ws.jobID', 'w.jobID')
+        .on('ws.stepIndex', 'w.workflowStepIndex');
+    })
+    .where('ws.updatedAt', '<', db.ref('w.updatedAt'))
+    .whereIn('w.status', ['successful', 'failed'])
+    .groupBy('ws.id')
+    .stream();
+
+
+  console.log('UPDATING WORKFLOW STEPS ================================');
+
+  for await (const row of stream) {
+    console.log(row);
     await db.transaction(async (tx) => {
-      const { job } = await Job.byJobID(tx, row.jobID, false, true);
+      try {
 
-      // The number of 'hits' returned by a query-cmr could be less than when CMR was first
-      // queried by harmony due to metadata deletions from CMR, so we update the job to reflect
-      // that there are fewer items and to know when no more query-cmr jobs should be created.
-      if (hits && job.numInputGranules > hits) {
-        job.numInputGranules = hits;
+        const workflowStep = await getWorkflowStepById(tx, row.id);
+        // TEST CODE
+        console.log(JSON.stringify(workflowStep.updatedAt));
+        workflowStep.updatedAt = new Date(row.max);
+        // console.log(JSON.stringify(workflowStep));
+        // TODO why does this not save the timestamp?
+        // await workflowStep.save(tx);
+        await tx('workflow_steps').update({ updatedAt: row.max }).where('id', row.id);
 
-        jobSaveStartTime = new Date().getTime();
-        await job.save(tx);
-        durationMs = new Date().getTime() - jobSaveStartTime;
-        logger.info('timing.HWIUWJI.job.save.end', { durationMs });
-
-        await (await logAsyncExecutionTime(
-          updateCmrWorkItemCount,
-          'HWIUWJI.updateCmrWorkItemCount',
-          logger))(tx, job);
+      } catch (e) {
+        console.log(e);
       }
 
-      await job.updateProgress(tx);
-
-      await job.save(tx);
     });
-
-    // If this job is complete then delete all the work for it from the user_work table
-
-    // if (job.hasTerminalStatus() && status !== WorkItemStatus.CANCELED) {
-    //   logger.warn(`Job was already ${job.status}.`);
-    //   const numRowsDeleted = await (await logAsyncExecutionTime(
-    //     deleteUserWorkForJob,
-    //     'HWIUWJI.deleteUserWorkForJob',
-    //     logger))(tx, jobID);
-    //   logger.warn(`Removed ${numRowsDeleted} from user_work table for job ${jobID}.`);
-    //   // Note work item will stay in the running state, but the reaper will clean it up
-    //   return;
-    // }
-
-    // update user_work_table
-
-    // await (await logAsyncExecutionTime(
-    //   incrementReadyAndDecrementRunningCounts,
-    //   'HWIUWJI.incrementReadyAndDecrementRunningCounts',
-    //   logger))(tx, jobID, workItem.serviceID);
   }
 
-
 }
+
+// If this job is complete then delete all the work for it from the user_work table
+
+// if (job.hasTerminalStatus() && status !== WorkItemStatus.CANCELED) {
+//   logger.warn(`Job was already ${job.status}.`);
+//   const numRowsDeleted = await (await logAsyncExecutionTime(
+//     deleteUserWorkForJob,
+//     'HWIUWJI.deleteUserWorkForJob',
+//     logger))(tx, jobID);
+//   logger.warn(`Removed ${numRowsDeleted} from user_work table for job ${jobID}.`);
+//   // Note work item will stay in the running state, but the reaper will clean it up
+//   return;
+// }
+
+// update user_work_table
+
+// await (await logAsyncExecutionTime(
+//   incrementReadyAndDecrementRunningCounts,
+//   'HWIUWJI.incrementReadyAndDecrementRunningCounts',
+//   logger))(tx, jobID, workItem.serviceID);
+
+
+
 
 export default class Updater implements Worker {
   async start(repeat = true): Promise<void> {
     defaultLogger.debug('Starting updater');
     while (repeat) {
       try {
-        await batchProcessQueue(env.workItemUpdateQueueType);
-        await updateJobs();
+        // console.log('SLEEPING');
+        // await sleep(5000);
+        // console.log('DONE SLEEPING');
+        console.log('PROCESSING QUEUE');
+        const messageCount = await batchProcessQueue(env.workItemUpdateQueueType);
+        console.log(`FOUND ${messageCount} MESSAGES ON QUEUE`);
+        if (messageCount > 0) {
+          await updateWorkflowSteps();
+          await updateJobs();
+        }
       } catch (e) {
         defaultLogger.error(e);
         await sleep(env.workItemUpdateQueueProcessorDelayAfterErrorSec * 1000);

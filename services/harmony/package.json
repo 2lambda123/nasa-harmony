@@ -16,6 +16,7 @@
     "watch-debug": "TS_NODE_TRANSPILE_ONLY=true nodemon --inspect=5858 -e ts,tsx,html --exec node -r tsconfig-paths/register -r ts-node/register app/server.ts",
     "prebuild": "./bin/prebuild",
     "build": "docker build -t harmonyservices/harmony:${VERSION:-latest} .",
+    "build-m1": "./bin/prebuild && docker build --platform linux/amd64 -t harmonyservices/harmony:${VERSION:-latest} .",
     "run-notebooks-image": "source .env && docker run -i -t --platform linux/amd64 --init -p 8888:8888 --env NB_EDL_USERNAME=\"${NB_EDL_USERNAME}\" --env NB_EDL_PASSWORD=\"${NB_EDL_PASSWORD}\" harmonyservices/notebooks:${VERSION:-latest}",
     "publish": "docker push harmonyservices/harmony:${VERSION:-latest}",
     "compare-services": "SKIP_ENV_VALIDATION=true ts-node scripts/service-comparison.ts"
@@ -129,7 +130,8 @@
     "node-fetch": "^2.6.6",
     "p-queue": "^7.1.0",
     "pg": "^8.7.3",
-    "pg-query-stream": "4.6.0",
+    "pg-native": "^3.0.1",
+    "pg-query-stream": "^4.6.0",
     "serve-favicon": "^2.5.0",
     "shpjs": "^4.0.2",
     "simple-oauth2": "git+https://github.com/bilts/simple-oauth2.git#fix-encoding",

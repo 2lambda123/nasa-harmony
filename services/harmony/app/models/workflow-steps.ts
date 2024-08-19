@@ -326,6 +326,7 @@ export async function updateIsComplete(tx: Transaction, jobID: string, numInputG
 
   const { stepIndex } = step;
 
+  // TODO can we just use the workItemCount column from the workflow-steps table?
   if (step.is_sequential) {
     const completedCount = await workItemCountForStep(tx, jobID, stepIndex, COMPLETED_WORK_ITEM_STATUSES);
     // TODO this is only true for query-cmr. If we add another sequential service we need to

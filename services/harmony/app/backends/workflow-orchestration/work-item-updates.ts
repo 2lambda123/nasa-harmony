@@ -6,9 +6,8 @@ import WorkflowStep, { getWorkflowStepByJobIdStepIndex, updateIsComplete } from 
 import { Logger } from 'winston';
 import _, { ceil, range, sum } from 'lodash';
 import { JobStatus, Job } from '../../models/job';
-import JobError, { getErrorCountForJob, getErrorsForJob } from '../../models/job-error';
-import JobLink, { getJobDataLinkCount } from '../../models/job-link';
-import { incrementReadyCount, deleteUserWorkForJob, incrementReadyAndDecrementRunningCounts, decrementRunningCount } from '../../models/user-work';
+import JobError, { getErrorCountForJob } from '../../models/job-error';
+import { incrementReadyCount, decrementRunningCount } from '../../models/user-work';
 import WorkItem, { maxSortIndexForJobService, workItemCountForStep, getWorkItemsByJobIdAndStepIndex, getWorkItemById, updateWorkItemStatus, getJobIdForWorkItem } from '../../models/work-item';
 import { WorkItemStatus, COMPLETED_WORK_ITEM_STATUSES } from '../../models/work-item-interface';
 import { outputStacItemUrls, handleBatching, resultItemSizes } from '../../util/aggregation-batch';
@@ -20,7 +19,6 @@ import { StacItem, readCatalogItems, StacItemLink, StacCatalog, readCatalogsItem
 import { resolve } from '../../util/url';
 import { QUERY_CMR_SERVICE_REGEX, calculateQueryCmrLimit } from '../../backends/workflow-orchestration/util';
 import { makeWorkScheduleRequest } from '../../backends/workflow-orchestration/work-item-polling';
-import { updateJobFields } from '../service-response';
 
 /**
  * A structure holding the preprocess info of a work item
@@ -45,31 +43,31 @@ export type WorkItemUpdateQueueItem = {
  * @param jobID - The job ID for the work item
  * @param catalogItems - an array of STAC catalog items
  */
-async function addJobLinksForFinishedWorkItem(
-  tx: Transaction,
-  jobID: string,
-  catalogItems: StacItem[],
-): Promise<void> {
-  for await (const item of catalogItems) {
-    for (const keyValue of Object.entries(item.assets)) {
-      const asset = keyValue[1];
-      const { href, type, title } = asset;
-      const link = new JobLink({
-        jobID,
-        href,
-        type,
-        title,
-        rel: 'data',
-        temporal: {
-          start: new Date(item.properties.start_datetime),
-          end: new Date(item.properties.end_datetime),
-        },
-        bbox: item.bbox,
-      });
-      await link.save(tx);
-    }
-  }
-}
+// async function addJobLinksForFinishedWorkItem(
+//   tx: Transaction,
+//   jobID: string,
+//   catalogItems: StacItem[],
+// ): Promise<void> {
+//   for await (const item of catalogItems) {
+//     for (const keyValue of Object.entries(item.assets)) {
+//       const asset = keyValue[1];
+//       const { href, type, title } = asset;
+//       const link = new JobLink({
+//         jobID,
+//         href,
+//         type,
+//         title,
+//         rel: 'data',
+//         temporal: {
+//           start: new Date(item.properties.start_datetime),
+//           end: new Date(item.properties.end_datetime),
+//         },
+//         bbox: item.bbox,
+//       });
+//       await link.save(tx);
+//     }
+//   }
+// }
 
 
 
@@ -83,27 +81,27 @@ async function addJobLinksForFinishedWorkItem(
  * @param job - The job record
  * @returns the final job status for the request
  */
-async function getFinalStatusAndMessageForJob(tx: Transaction, job: Job):
-Promise<{ finalStatus: JobStatus, finalMessage: string; }> {
-  let finalStatus = JobStatus.SUCCESSFUL;
-  const errorCount = await getErrorCountForJob(tx, job.jobID);
-  const dataLinkCount = await getJobDataLinkCount(tx, job.jobID);
-  if (errorCount > 0) {
-    if (dataLinkCount > 0) {
-      finalStatus = JobStatus.COMPLETE_WITH_ERRORS;
-    } else {
-      finalStatus = JobStatus.FAILED;
-    }
-  }
-  let finalMessage = '';
-  if ((errorCount > 1) && (finalStatus == JobStatus.FAILED)) {
-    finalMessage = `The job failed with ${errorCount} errors. See the errors field for more details`;
-  } else if ((errorCount == 1) && (finalStatus == JobStatus.FAILED)) {
-    const jobError = (await getErrorsForJob(tx, job.jobID, 1))[0];
-    finalMessage = jobError.message;
-  }
-  return { finalStatus, finalMessage };
-}
+// async function getFinalStatusAndMessageForJob(tx: Transaction, job: Job):
+// Promise<{ finalStatus: JobStatus, finalMessage: string; }> {
+//   let finalStatus = JobStatus.SUCCESSFUL;
+//   const errorCount = await getErrorCountForJob(tx, job.jobID);
+//   const dataLinkCount = await getJobDataLinkCount(tx, job.jobID);
+//   if (errorCount > 0) {
+//     if (dataLinkCount > 0) {
+//       finalStatus = JobStatus.COMPLETE_WITH_ERRORS;
+//     } else {
+//       finalStatus = JobStatus.FAILED;
+//     }
+//   }
+//   let finalMessage = '';
+//   if ((errorCount > 1) && (finalStatus == JobStatus.FAILED)) {
+//     finalMessage = `The job failed with ${errorCount} errors. See the errors field for more details`;
+//   } else if ((errorCount == 1) && (finalStatus == JobStatus.FAILED)) {
+//     const jobError = (await getErrorsForJob(tx, job.jobID, 1))[0];
+//     finalMessage = jobError.message;
+//   }
+//   return { finalStatus, finalMessage };
+// }
 
 /**
  * If a work item has an error adds the error to the job_errors database table.
@@ -222,14 +220,14 @@ async function handleFailedWorkItems(
  * @param transaction - the transaction to use for the update
  * @param job - A Job that has a new input granule count
  */
-async function updateCmrWorkItemCount(
-  transaction: Transaction,
-  job: Job):
-  Promise<void> {
-  const step = await getWorkflowStepByJobIdStepIndex(transaction, job.jobID, 1);
-  step.workItemCount = Math.ceil(job.numInputGranules / env.cmrMaxPageSize);
-  await step.save(transaction);
-}
+// async function updateCmrWorkItemCount(
+//   transaction: Transaction,
+//   job: Job):
+//   Promise<void> {
+//   const step = await getWorkflowStepByJobIdStepIndex(transaction, job.jobID, 1);
+//   step.workItemCount = Math.ceil(job.numInputGranules / env.cmrMaxPageSize);
+//   await step.save(transaction);
+// }
 
 /**
  * Read a STAC catalog and return the item links. This does not handle sub-catalogs. This function
@@ -600,14 +598,15 @@ export async function preprocessWorkItem(
 export async function processWorkItem(
   tx: Transaction,
   preprocessResult: WorkItemPreprocessInfo,
-  jobID: string,
+  job: Job,
   update: WorkItemUpdate,
   logger: Logger,
   checkCompletion,
   thisStep: WorkflowStep,
 ): Promise<void> {
+
   // const { jobID } = job;
-  const { status, errorMessage, catalogItems, outputItemSizes } = preprocessResult;
+  const { status, errorMessage, outputItemSizes } = preprocessResult;
   const { workItemID, results, scrollID } = update;
   const startTime = new Date().getTime();
   let durationMs;
@@ -676,9 +675,10 @@ export async function processWorkItem(
 
     if (COMPLETED_WORK_ITEM_STATUSES.includes(status)) {
       thisStep.completed_work_item_count += 1;
-      await thisStep.save(tx);
+      // await thisStep.save(tx);
     }
 
+    // This is where we actually update the work-item
     await (await logAsyncExecutionTime(
       updateWorkItemStatus,
       'HWIUWJI.updateWorkItemStatus',
@@ -692,7 +692,7 @@ export async function processWorkItem(
     await (await logAsyncExecutionTime(
       decrementRunningCount,
       'HWIUWJI.decrementRunningCount',
-      logger))(tx, jobID, workItem.serviceID);
+      logger))(tx, job.jobID, workItem.serviceID);
 
     logger.info(`Updated work item. Duration (ms) was: ${duration}`);
 
@@ -704,7 +704,7 @@ export async function processWorkItem(
     // await job.save(tx);
 
     if (checkCompletion) {
-      allWorkItemsForStepComplete = await updateIsComplete(tx, jobID, job.numInputGranules, thisStep);
+      allWorkItemsForStepComplete = await updateIsComplete(tx, job.jobID, job.numInputGranules, thisStep);
     }
 
     const continueProcessing = await (await logAsyncExecutionTime(
@@ -751,47 +751,47 @@ export async function processWorkItem(
           // Failed to create the next work items when there should be work items.
           // Fail the job rather than leaving it orphaned in the running state
           logger.error('The work item update should have contained results to queue a next work item, but it did not.');
-          const message = 'Harmony internal failure: service did not return any outputs.';
-          await (await logAsyncExecutionTime(
-            completeJob,
-            'HWIUWJI.completeJob',
-            logger))(tx, job, JobStatus.FAILED, logger, message);
+          // const message = 'Harmony internal failure: service did not return any outputs.';
+          // await (await logAsyncExecutionTime(
+          //   completeJob,
+          //   'HWIUWJI.completeJob',
+          //   logger))(tx, job, JobStatus.FAILED, logger, message);
         }
       }
 
       if (!nextWorkflowStep) {
-        // Finished with the chain for this granule
-        if (status != WorkItemStatus.FAILED) {
-          await (await logAsyncExecutionTime(
-            addJobLinksForFinishedWorkItem,
-            'HWIUWJI.addJobLinksForFinishedWorkItem',
-            logger))(tx, job.jobID, catalogItems);
-        }
+        // Finished with the chain for this granuleß
+        // if (status != WorkItemStatus.FAILED) {
+        //   await (await logAsyncExecutionTime(
+        //     addJobLinksForFinishedWorkItem,
+        //     'HWIUWJI.addJobLinksForFinishedWorkItem',
+        //     logger))(tx, job.jobID, catalogItems);
+        // }
       }
 
       if (allWorkItemsForStepComplete) {
-        if (!didCreateWorkItem && (!nextWorkflowStep || nextWorkflowStep.workItemCount < 1)) {
-          // If all granules are finished mark the job as finished
-          const { finalStatus, finalMessage } = await getFinalStatusAndMessageForJob(tx, job);
-          await (await logAsyncExecutionTime(
-            completeJob,
-            'HWIUWJI.completeJob',
-            logger))(tx, job, finalStatus, logger, finalMessage);
-        }
+        // if (!didCreateWorkItem && (!nextWorkflowStep || nextWorkflowStep.workItemCount < 1)) {
+        //   // If all granules are finished mark the job as finished
+        //   const { finalStatus, finalMessage } = await getFinalStatusAndMessageForJob(tx, job);
+        //   await (await logAsyncExecutionTime(
+        //     completeJob,
+        //     'HWIUWJI.completeJob',
+        //     logger))(tx, job, finalStatus, logger, finalMessage);
+        // }
       } else { // Currently only reach this condition for batched aggregation requests
 
-        if (!nextWorkflowStep && job.status === JobStatus.PREVIEWING) {
-          // Special case to pause the job as soon as any single granule completes when in the previewing state
-          jobSaveStartTime = new Date().getTime();
-          await job.pauseAndSave(tx);
-          durationMs = new Date().getTime() - jobSaveStartTime;
-          logger.info('timing.HWIUWJI.job.pauseAndSave.end', { durationMs });
-        } else {
-          jobSaveStartTime = new Date().getTime();
-          // await job.save(tx);
-          durationMs = new Date().getTime() - jobSaveStartTime;
-          logger.info('timing.HWIUWJI.job.save.end', { durationMs });
-        }
+        // if (!nextWorkflowStep && job.status === JobStatus.PREVIEWING) {
+        //   // Special case to pause the job as soon as any single granule completes when in the previewing state
+        //   jobSaveStartTime = new Date().getTime();
+        //   await job.pauseAndSave(tx);
+        //   durationMs = new Date().getTime() - jobSaveStartTime;
+        //   logger.info('timing.HWIUWJI.job.pauseAndSave.end', { durationMs });
+        // } else {
+        //   jobSaveStartTime = new Date().getTime();
+        //   // await job.save(tx);
+        //   durationMs = new Date().getTime() - jobSaveStartTime;
+        //   logger.info('timing.HWIUWJI.job.save.end', { durationMs });
+        // }
 
       }
 
@@ -882,11 +882,7 @@ export async function handleWorkItemUpdateWithJobId(
     const preprocessResult = await preprocessWorkItem(update, operation, logger, nextWorkflowStep);
     const transactionStart = new Date().getTime();
     await db.transaction(async (tx) => {
-      const { job } = await (await logAsyncExecutionTime(
-        Job.byJobID,
-        'HWIUWJI.Job.byJobID',
-        logger))(tx, jobID, false, true);
-
+      const { job } = await Job.byJobID(tx, jobID);
       await processWorkItem(tx, preprocessResult, job, update, logger, true, undefined);
       // await job.save(tx);
     });

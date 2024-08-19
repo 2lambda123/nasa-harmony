@@ -13,8 +13,8 @@
     "coverage": "nyc mocha",
     "prebuild": "./bin/prebuild",
     "prebuild-m1": "./bin/prebuild",
-    "build": "tsc && docker build -f Dockerfile.mac --tag harmonyservices/work-scheduler:${VERSION:-latest} .",
-    "build-m1": "tsc && docker build -f Dockerfile.mac --platform linux/amd64 --tag harmonyservices/work-scheduler:${VERSION:-latest} .",
+    "build": "tsc && docker build --tag harmonyservices/work-scheduler:${VERSION:-latest} .",
+    "build-m1": "tsc && docker build --platform linux/amd64 --tag harmonyservices/work-scheduler:${VERSION:-latest} .",
     "push-image": "./bin/push-image ${VERSION:-latest}",
     "publish": "docker push harmonyservices/work-scheduler:${VERSION:-latest}",
     "better-audit": "better-npm-audit audit"
@@ -52,6 +52,8 @@
     "lru-cache": "^10.2.2",
     "node-fetch": "^2.5.12",
     "pg": "^8.7.3",
+    "pg-native": "^3.0.1",
+    "pg-query-stream": "^4.6.0",
     "tmp": "^0.2.1",
     "winston": "^3.10.0",
     "xstate": "^4.31.0"
@@ -65,6 +67,7 @@
     "@types/sinon": "^10.0.6",
     "@types/superagent": "^4.1.13",
     "@types/supertest": "^2.0.10",
+    "@types/ws": "^8.5.12",
     "axios-mock-adapter": "^1.20.0",
     "better-npm-audit": "^3.7.3",
     "chai": "^4.2.0",
@@ -75,7 +78,8 @@
     "sinon": "^12.0.1",
     "superagent": "^8.0.6",
     "ts-node": "^10.4.0",
-    "typescript": "^4.4.4"
+    "typescript": "^4.4.4",
+    "ws": "^8.18.0"
   },
   "overrides": {
     "semver": "^7.6.2",
