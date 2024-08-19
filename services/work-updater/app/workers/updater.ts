@@ -254,6 +254,10 @@ export async function updateWorkflowSteps(): Promise<void> {
       try {
 
         const workflowStep = await getWorkflowStepById(tx, row.id);
+
+        // get the work-items for this step that have been updated
+
+
         // TEST CODE
         console.log(JSON.stringify(workflowStep.updatedAt));
         workflowStep.updatedAt = new Date(row.max);
