@@ -67,7 +67,7 @@
     "eslint-plugin-jsdoc": "^46.2.6",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-tsdoc": "^0.2.17",
-    "mocha": "^10.2.0",
+    "mocha": "^10.8.2",
     "nyc": "^15.1.0",
     "rimraf": "^5.0.1",
     "strict-npm-engines": "^0.0.1",
